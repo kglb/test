@@ -1,0 +1,228 @@
+{% extends "base.html" %}
+
+{% block title %}仪表板 - 实验室管理系统{% endblock %}
+{% block page_title %}仪表板{% endblock %}
+
+{% block content %}
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon bg-primary bg-opacity-10 text-primary">
+                <i class="bi bi-people"></i>
+            </div>
+            <h6 class="text-muted">成员总数</h6>
+            <h3 class="mb-0" id="totalUsers">-</h3>
+            <small class="text-success">活跃: <span id="activeUsers">-</span></small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon bg-info bg-opacity-10 text-info">
+                <i class="bi bi-folder"></i>
+            </div>
+            <h6 class="text-muted">项目总数</h6>
+            <h3 class="mb-0" id="totalProjects">-</h3>
+            <small class="text-info">进行中: <span id="activeProjects">-</span></small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon bg-warning bg-opacity-10 text-warning">
+                <i class="bi bi-check2-square"></i>
+            </div>
+            <h6 class="text-muted">任务总数</h6>
+            <h3 class="mb-0" id="totalTasks">-</h3>
+            <small class="text-warning">待完成: <span id="pendingTasks">-</span></small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="stat-card">
+            <div class="icon bg-success bg-opacity-10 text-success">
+                <i class="bi bi-gear"></i>
+            </div>
+            <h6 class="text-muted">设备总数</h6>
+            <h3 class="mb-0" id="totalEquipment">-</h3>
+            <small class="text-success">可用: <span id="availableEquipment">-</span></small>
+        </div>
+    </div>
+</div>
+
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-folder me-2"></i>项目状态分布</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>进行中</span>
+                        <span id="activeProjectsCount">0</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-info" role="progressbar" style="width: 0%" id="activeProjectsBar"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>已完成</span>
+                        <span id="completedProjectsCount">0</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 0%" id="completedProjectsBar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-gear me-2"></i>设备状态分布</h5>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>可用</span>
+                        <span id="availableEquipmentCount">0</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-success" role="progressbar" style="width: 0%" id="availableEquipmentBar"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>使用中</span>
+                        <span id="inUseEquipmentCount">0</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-primary" role="progressbar" style="width: 0%" id="inUseEquipmentBar"></div>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span>维护中</span>
+                        <span id="maintenanceEquipmentCount">0</span>
+                    </div>
+                    <div class="progress" style="height: 20px;">
+                        <div class="progress-bar bg-warning" role="progressbar" style="width: 0%" id="maintenanceEquipmentBar"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-check2-square me-2"></i>任务状态</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-around text-center">
+                    <div>
+                        <h4 class="text-warning" id="taskPending">0</h4>
+                        <small class="text-muted">待处理</small>
+                    </div>
+                    <div>
+                        <h4 class="text-info" id="taskInProgress">0</h4>
+                        <small class="text-muted">进行中</small>
+                    </div>
+                    <div>
+                        <h4 class="text-success" id="taskCompleted">0</h4>
+                        <small class="text-muted">已完成</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card">
+            <div class="card-header bg-white">
+                <h5 class="mb-0"><i class="bi bi-box-seam me-2"></i>库存状态</h5>
+            </div>
+            <div class="card-body">
+                <div class="d-flex justify-content-around text-center">
+                    <div>
+                        <h4 class="text-primary" id="inventoryTotal">0</h4>
+                        <small class="text-muted">总物品数</small>
+                    </div>
+                    <div>
+                        <h4 class="text-danger" id="inventoryLowStock">0</h4>
+                        <small class="text-muted">库存预警</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Load statistics
+    async function loadStatistics() {
+        try {
+            const response = await apiCall('/api/statistics');
+            
+            // User stats
+            document.getElementById('totalUsers').textContent = response.users.total;
+            document.getElementById('activeUsers').textContent = response.users.active;
+            
+            // Project stats
+            document.getElementById('totalProjects').textContent = response.projects.total;
+            document.getElementById('activeProjects').textContent = response.projects.active;
+            
+            const totalProjects = response.projects.total || 1;
+            document.getElementById('activeProjectsCount').textContent = response.projects.active;
+            document.getElementById('completedProjectsCount').textContent = response.projects.completed;
+            document.getElementById('activeProjectsBar').style.width = 
+                ((response.projects.active / totalProjects) * 100) + '%';
+            document.getElementById('completedProjectsBar').style.width = 
+                ((response.projects.completed / totalProjects) * 100) + '%';
+            
+            // Task stats
+            document.getElementById('totalTasks').textContent = response.tasks.total;
+            document.getElementById('pendingTasks').textContent = 
+                response.tasks.pending + response.tasks.in_progress;
+            document.getElementById('taskPending').textContent = response.tasks.pending;
+            document.getElementById('taskInProgress').textContent = response.tasks.in_progress;
+            document.getElementById('taskCompleted').textContent = response.tasks.completed;
+            
+            // Equipment stats
+            document.getElementById('totalEquipment').textContent = response.equipment.total;
+            document.getElementById('availableEquipment').textContent = response.equipment.available;
+            
+            const totalEquipment = response.equipment.total || 1;
+            document.getElementById('availableEquipmentCount').textContent = response.equipment.available;
+            document.getElementById('inUseEquipmentCount').textContent = response.equipment.in_use;
+            document.getElementById('maintenanceEquipmentCount').textContent = response.equipment.maintenance;
+            
+            document.getElementById('availableEquipmentBar').style.width = 
+                ((response.equipment.available / totalEquipment) * 100) + '%';
+            document.getElementById('inUseEquipmentBar').style.width = 
+                ((response.equipment.in_use / totalEquipment) * 100) + '%';
+            document.getElementById('maintenanceEquipmentBar').style.width = 
+                ((response.equipment.maintenance / totalEquipment) * 100) + '%';
+            
+            // Inventory stats
+            document.getElementById('inventoryTotal').textContent = response.inventory.total;
+            document.getElementById('inventoryLowStock').textContent = response.inventory.low_stock;
+            
+        } catch (error) {
+            console.error('Error loading statistics:', error);
+        }
+    }
+    
+    // Load data on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        loadStatistics();
+        
+        // Refresh statistics every 30 seconds
+        setInterval(loadStatistics, 30000);
+    });
+</script>
+{% endblock %}

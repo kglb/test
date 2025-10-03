@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}实验室管理系统{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #2563eb;
+            --sidebar-width: 250px;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        }
+        
+        .sidebar {
+            position: fixed;
+            top: 0;
+            left: 0;
+            height: 100vh;
+            width: var(--sidebar-width);
+            background: linear-gradient(180deg, #1e3a8a 0%, #1e40af 100%);
+            color: white;
+            overflow-y: auto;
+            z-index: 1000;
+            box-shadow: 2px 0 10px rgba(0,0,0,0.1);
+        }
+        
+        .sidebar .logo {
+            padding: 1.5rem 1rem;
+            font-size: 1.25rem;
+            font-weight: bold;
+            border-bottom: 1px solid rgba(255,255,255,0.1);
+        }
+        
+        .sidebar .nav-link {
+            color: rgba(255,255,255,0.8);
+            padding: 0.75rem 1rem;
+            transition: all 0.3s;
+            border-left: 3px solid transparent;
+        }
+        
+        .sidebar .nav-link:hover, .sidebar .nav-link.active {
+            background: rgba(255,255,255,0.1);
+            color: white;
+            border-left-color: white;
+        }
+        
+        .sidebar .nav-link i {
+            width: 20px;
+            margin-right: 10px;
+        }
+        
+        .main-content {
+            margin-left: var(--sidebar-width);
+            min-height: 100vh;
+            background: #f8f9fa;
+        }
+        
+        .top-navbar {
+            background: white;
+            padding: 1rem 2rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        
+        .page-content {
+            padding: 2rem;
+        }
+        
+        .stat-card {
+            background: white;
+            border-radius: 8px;
+            padding: 1.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .stat-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
+        }
+        
+        .stat-card .icon {
+            width: 48px;
+            height: 48px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.5rem;
+            margin-bottom: 1rem;
+        }
+        
+        .card {
+            border: none;
+            border-radius: 8px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+        }
+        
+        .table {
+            background: white;
+        }
+        
+        .btn-primary {
+            background: var(--primary-color);
+            border-color: var(--primary-color);
+        }
+        
+        .badge {
+            padding: 0.35em 0.65em;
+        }
+    </style>
+    {% block extra_css %}{% endblock %}
+</head>
+<body>
+    <!-- Sidebar -->
+    <div class="sidebar">
+        <div class="logo">
+            <i class="bi bi-flask"></i> 实验室管理
+        </div>
+        <nav class="nav flex-column">
+            <a class="nav-link" href="/dashboard">
+                <i class="bi bi-speedometer2"></i> 仪表板
+            </a>
+            <a class="nav-link" href="/users">
+                <i class="bi bi-people"></i> 成员管理
+            </a>
+            <a class="nav-link" href="/groups">
+                <i class="bi bi-diagram-3"></i> 课题组管理
+            </a>
+            <a class="nav-link" href="/projects">
+                <i class="bi bi-folder"></i> 项目管理
+            </a>
+            <a class="nav-link" href="/tasks">
+                <i class="bi bi-check2-square"></i> 任务管理
+            </a>
+            <a class="nav-link" href="/equipment">
+                <i class="bi bi-gear"></i> 设备管理
+            </a>
+            <a class="nav-link" href="/equipment/usage">
+                <i class="bi bi-clock-history"></i> 使用记录
+            </a>
+            <a class="nav-link" href="/equipment/reservations">
+                <i class="bi bi-calendar-check"></i> 设备预约
+            </a>
+            <a class="nav-link" href="/equipment/maintenance">
+                <i class="bi bi-tools"></i> 设备维护
+            </a>
+            <a class="nav-link" href="/inventory">
+                <i class="bi bi-box-seam"></i> 库存管理
+            </a>
+            <a class="nav-link" href="/announcements">
+                <i class="bi bi-megaphone"></i> 公告管理
+            </a>
+            <a class="nav-link" href="/system/logs">
+                <i class="bi bi-list-ul"></i> 系统日志
+            </a>
+        </nav>
+    </div>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Top Navbar -->
+        <div class="top-navbar">
+            <div>
+                <h4 class="mb-0">{% block page_title %}实验室管理系统{% endblock %}</h4>
+            </div>
+            <div class="dropdown">
+                <button class="btn btn-outline-secondary dropdown-toggle" type="button" data-bs-toggle="dropdown">
+                    <i class="bi bi-person-circle"></i> <span id="username"></span>
+                </button>
+                <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="#" onclick="logout()"><i class="bi bi-box-arrow-right"></i> 退出登录</a></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Page Content -->
+        <div class="page-content">
+            {% block content %}{% endblock %}
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+        // Set active nav link
+        document.addEventListener('DOMContentLoaded', function() {
+            const currentPath = window.location.pathname;
+            document.querySelectorAll('.sidebar .nav-link').forEach(link => {
+                if (link.getAttribute('href') === currentPath) {
+                    link.classList.add('active');
+                }
+            });
+            
+            // Set username
+            const username = sessionStorage.getItem('username') || 'User';
+            document.getElementById('username').textContent = username;
+        });
+        
+        // Logout function
+        function logout() {
+            fetch('/logout', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                }
+            }).then(() => {
+                sessionStorage.clear();
+                window.location.href = '/login';
+            });
+        }
+        
+        // Helper function for API calls
+        function apiCall(url, options = {}) {
+            options.headers = options.headers || {};
+            options.headers['Content-Type'] = 'application/json';
+            
+            return fetch(url, options)
+                .then(response => {
+                    if (response.status === 401) {
+                        window.location.href = '/login';
+                        throw new Error('Unauthorized');
+                    }
+                    return response.json();
+                })
+                .catch(error => {
+                    console.error('API Error:', error);
+                    throw error;
+                });
+        }
+        
+        // Helper function to show alerts
+        function showAlert(message, type = 'success') {
+            const alertDiv = document.createElement('div');
+            alertDiv.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+            alertDiv.style.cssText = 'top: 20px; right: 20px; z-index: 9999; min-width: 300px;';
+            alertDiv.innerHTML = `
+                ${message}
+                <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            `;
+            document.body.appendChild(alertDiv);
+            
+            setTimeout(() => {
+                alertDiv.remove();
+            }, 3000);
+        }
+        
+        // Format date
+        function formatDate(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleDateString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit'
+            });
+        }
+        
+        // Format datetime
+        function formatDateTime(dateString) {
+            if (!dateString) return '-';
+            const date = new Date(dateString);
+            return date.toLocaleString('zh-CN', {
+                year: 'numeric',
+                month: '2-digit',
+                day: '2-digit',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+    </script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>实验室管理系统</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+        }
+        
+        .hero {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            color: white;
+        }
+        
+        .feature-card {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border-radius: 12px;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: transform 0.3s, box-shadow 0.3s;
+        }
+        
+        .feature-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+        }
+        
+        .feature-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+            color: #ffd700;
+        }
+        
+        .btn-login {
+            padding: 0.75rem 2rem;
+            font-size: 1.1rem;
+            border-radius: 50px;
+            background: white;
+            color: #667eea;
+            font-weight: 600;
+            transition: all 0.3s;
+        }
+        
+        .btn-login:hover {
+            transform: scale(1.05);
+            box-shadow: 0 10px 25px rgba(255,255,255,0.3);
+            color: #764ba2;
+        }
+    </style>
+</head>
+<body>
+    <div class="hero">
+        <div class="container">
+            <div class="row align-items-center">
+                <div class="col-lg-6 mb-5 mb-lg-0">
+                    <h1 class="display-3 fw-bold mb-4">实验室管理系统</h1>
+                    <p class="lead mb-4">
+                        专业的实验室管理解决方案，助力科研团队高效协作
+                    </p>
+                    <a href="/login" class="btn btn-login btn-lg">
+                        <i class="bi bi-box-arrow-in-right me-2"></i>立即登录
+                    </a>
+                </div>
+                <div class="col-lg-6">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <i class="bi bi-people feature-icon"></i>
+                                <h4>成员管理</h4>
+                                <p>完善的成员信息管理和权限分配系统</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <i class="bi bi-gear feature-icon"></i>
+                                <h4>设备管理</h4>
+                                <p>设备登记、预约、使用和维护全流程管理</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <i class="bi bi-box-seam feature-icon"></i>
+                                <h4>库存管理</h4>
+                                <p>试剂耗材库存跟踪，出入库自动记录</p>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="feature-card">
+                                <i class="bi bi-folder feature-icon"></i>
+                                <h4>项目任务</h4>
+                                <p>项目全生命周期管理和任务分配跟踪</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="row mt-5">
+                <div class="col-12 text-center">
+                    <h3 class="mb-4">核心功能特性</h3>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="bi bi-shield-check feature-icon"></i>
+                        <h5>权限控制</h5>
+                        <p>细粒度的权限管理和操作审计</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="bi bi-graph-up feature-icon"></i>
+                        <h5>数据分析</h5>
+                        <p>实时统计和可视化数据报表</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="bi bi-diagram-3 feature-icon"></i>
+                        <h5>多组支持</h5>
+                        <p>支持多课题组独立管理</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="text-center">
+                        <i class="bi bi-cloud-check feature-icon"></i>
+                        <h5>数据安全</h5>
+                        <p>自动备份和数据恢复保障</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
