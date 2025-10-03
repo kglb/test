@@ -1,0 +1,278 @@
+{% extends "base.html" %}
+
+{% block title %}成员管理 - 实验室管理系统{% endblock %}
+{% block page_title %}成员管理{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header bg-white d-flex justify-content-between align-items-center">
+        <h5 class="mb-0"><i class="bi bi-people me-2"></i>成员列表</h5>
+        <button class="btn btn-primary" onclick="showCreateModal()">
+            <i class="bi bi-plus-circle me-1"></i>添加成员
+        </button>
+    </div>
+    <div class="card-body">
+        <div class="table-responsive">
+            <table class="table table-hover">
+                <thead>
+                    <tr>
+                        <th>姓名</th>
+                        <th>用户名</th>
+                        <th>邮箱</th>
+                        <th>角色</th>
+                        <th>学历</th>
+                        <th>状态</th>
+                        <th>加入时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody id="usersTable">
+                    <tr>
+                        <td colspan="8" class="text-center">加载中...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Create/Edit User Modal -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">添加成员</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+                    <div class="mb-3">
+                        <label class="form-label">姓名 *</label>
+                        <input type="text" class="form-control" id="name" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">用户名 *</label>
+                        <input type="text" class="form-control" id="username" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">邮箱 *</label>
+                        <input type="email" class="form-control" id="email" required>
+                    </div>
+                    <div class="mb-3" id="passwordField">
+                        <label class="form-label">密码 *</label>
+                        <input type="password" class="form-control" id="password">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">电话</label>
+                        <input type="tel" class="form-control" id="phone">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">学号/工号</label>
+                        <input type="text" class="form-control" id="student_id">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">角色 *</label>
+                        <select class="form-select" id="role" required>
+                            <option value="student">学生</option>
+                            <option value="teacher">教师</option>
+                            <option value="admin">管理员</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">学历</label>
+                        <select class="form-select" id="grade">
+                            <option value="">请选择</option>
+                            <option value="undergraduate">本科生</option>
+                            <option value="master">硕士研究生</option>
+                            <option value="phd">博士研究生</option>
+                            <option value="teacher">教师</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label">专业</label>
+                        <input type="text" class="form-control" id="major">
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    let userModal;
+    
+    document.addEventListener('DOMContentLoaded', function() {
+        userModal = new bootstrap.Modal(document.getElementById('userModal'));
+        loadUsers();
+    });
+    
+    async function loadUsers() {
+        try {
+            const users = await apiCall('/api/users');
+            const tbody = document.getElementById('usersTable');
+            
+            if (users.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="8" class="text-center">暂无数据</td></tr>';
+                return;
+            }
+            
+            tbody.innerHTML = users.map(user => `
+                <tr>
+                    <td>${user.name}</td>
+                    <td>${user.username}</td>
+                    <td>${user.email}</td>
+                    <td>
+                        <span class="badge ${getRoleBadgeClass(user.role)}">${getRoleText(user.role)}</span>
+                    </td>
+                    <td>${getGradeText(user.grade)}</td>
+                    <td>
+                        <span class="badge ${user.is_active ? 'bg-success' : 'bg-secondary'}">
+                            ${user.is_active ? '活跃' : '离职'}
+                        </span>
+                    </td>
+                    <td>${formatDate(user.join_date)}</td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-primary" onclick="editUser(${user.id})">
+                            <i class="bi bi-pencil"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteUser(${user.id}, '${user.name}')">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </td>
+                </tr>
+            `).join('');
+        } catch (error) {
+            console.error('Error loading users:', error);
+            showAlert('加载成员列表失败', 'danger');
+        }
+    }
+    
+    function showCreateModal() {
+        document.getElementById('userModalTitle').textContent = '添加成员';
+        document.getElementById('userForm').reset();
+        document.getElementById('userId').value = '';
+        document.getElementById('passwordField').style.display = 'block';
+        document.getElementById('password').required = true;
+        userModal.show();
+    }
+    
+    async function editUser(userId) {
+        try {
+            const user = await apiCall(`/api/users/${userId}`);
+            
+            document.getElementById('userModalTitle').textContent = '编辑成员';
+            document.getElementById('userId').value = user.id;
+            document.getElementById('name').value = user.name;
+            document.getElementById('username').value = user.username;
+            document.getElementById('email').value = user.email;
+            document.getElementById('phone').value = user.phone || '';
+            document.getElementById('student_id').value = user.student_id || '';
+            document.getElementById('role').value = user.role;
+            document.getElementById('grade').value = user.grade || '';
+            document.getElementById('major').value = user.major || '';
+            
+            document.getElementById('passwordField').style.display = 'none';
+            document.getElementById('password').required = false;
+            
+            userModal.show();
+        } catch (error) {
+            console.error('Error loading user:', error);
+            showAlert('加载成员信息失败', 'danger');
+        }
+    }
+    
+    async function saveUser() {
+        const userId = document.getElementById('userId').value;
+        const data = {
+            name: document.getElementById('name').value,
+            username: document.getElementById('username').value,
+            email: document.getElementById('email').value,
+            phone: document.getElementById('phone').value,
+            student_id: document.getElementById('student_id').value,
+            role: document.getElementById('role').value,
+            grade: document.getElementById('grade').value,
+            major: document.getElementById('major').value
+        };
+        
+        if (!userId) {
+            data.password = document.getElementById('password').value;
+        } else if (document.getElementById('password').value) {
+            data.password = document.getElementById('password').value;
+        }
+        
+        try {
+            if (userId) {
+                await apiCall(`/api/users/${userId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify(data)
+                });
+                showAlert('成员信息已更新');
+            } else {
+                await apiCall('/api/users', {
+                    method: 'POST',
+                    body: JSON.stringify(data)
+                });
+                showAlert('成员添加成功');
+            }
+            
+            userModal.hide();
+            loadUsers();
+        } catch (error) {
+            console.error('Error saving user:', error);
+            showAlert('保存失败: ' + (error.message || '未知错误'), 'danger');
+        }
+    }
+    
+    async function deleteUser(userId, name) {
+        if (!confirm(`确定要删除成员 "${name}" 吗？`)) {
+            return;
+        }
+        
+        try {
+            await apiCall(`/api/users/${userId}`, {
+                method: 'DELETE'
+            });
+            showAlert('成员已删除');
+            loadUsers();
+        } catch (error) {
+            console.error('Error deleting user:', error);
+            showAlert('删除失败', 'danger');
+        }
+    }
+    
+    function getRoleBadgeClass(role) {
+        const classes = {
+            'admin': 'bg-danger',
+            'teacher': 'bg-primary',
+            'student': 'bg-info'
+        };
+        return classes[role] || 'bg-secondary';
+    }
+    
+    function getRoleText(role) {
+        const texts = {
+            'admin': '管理员',
+            'teacher': '教师',
+            'student': '学生'
+        };
+        return texts[role] || role;
+    }
+    
+    function getGradeText(grade) {
+        const texts = {
+            'undergraduate': '本科生',
+            'master': '硕士',
+            'phd': '博士',
+            'teacher': '教师'
+        };
+        return texts[grade] || '-';
+    }
+</script>
+{% endblock %}
