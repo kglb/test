@@ -1,0 +1,632 @@
+{% extends "base.html" %}
+
+{% block title %}设备预约{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-calendar-check"></i> 设备预约</h2>
+                <div>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addReservationModal">
+                        <i class="fas fa-plus"></i> 新建预约
+                    </button>
+                    <a href="/equipment" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> 返回设备管理
+                    </a>
+                </div>
+            </div>
+
+            <!-- 筛选条件 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="equipmentFilter" class="form-label">选择设备</label>
+                            <select class="form-select" id="equipmentFilter">
+                                <option value="">全部设备</option>
+                                <!-- 设备选项将动态加载 -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">预约状态</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">全部状态</option>
+                                <option value="pending">待审批</option>
+                                <option value="approved">已批准</option>
+                                <option value="rejected">已拒绝</option>
+                                <option value="cancelled">已取消</option>
+                                <option value="completed">已完成</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="userFilter" class="form-label">预约人</label>
+                            <select class="form-select" id="userFilter">
+                                <option value="">全部用户</option>
+                                <!-- 用户选项将动态加载 -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button class="btn btn-primary w-100" onclick="searchReservations()">
+                                    <i class="fas fa-search"></i> 搜索
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 预约列表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>设备名称</th>
+                                    <th>预约人</th>
+                                    <th>项目</th>
+                                    <th>预约时间</th>
+                                    <th>预约目的</th>
+                                    <th>优先级</th>
+                                    <th>状态</th>
+                                    <th>审批人</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="reservationTableBody">
+                                <!-- 预约记录将在这里动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分页 -->
+                    <nav aria-label="预约列表分页">
+                        <ul class="pagination justify-content-center" id="reservationPagination">
+                            <!-- 分页按钮将在这里动态生成 -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 新建预约模态框 -->
+<div class="modal fade" id="addReservationModal" tabindex="-1" aria-labelledby="addReservationModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addReservationModalLabel">新建设备预约</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="reservationForm">
+                    <div class="mb-3">
+                        <label for="reservationEquipment" class="form-label">选择设备 *</label>
+                        <select class="form-select" id="reservationEquipment" required>
+                            <option value="">请选择设备</option>
+                            <!-- 设备选项将动态加载 -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reservationProject" class="form-label">关联项目</label>
+                        <select class="form-select" id="reservationProject">
+                            <option value="">请选择项目（可选）</option>
+                            <!-- 项目选项将动态加载 -->
+                        </select>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="reservationStartTime" class="form-label">开始时间 *</label>
+                                <input type="datetime-local" class="form-control" id="reservationStartTime" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="reservationEndTime" class="form-label">结束时间 *</label>
+                                <input type="datetime-local" class="form-control" id="reservationEndTime" required>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reservationPurpose" class="form-label">预约目的 *</label>
+                        <input type="text" class="form-control" id="reservationPurpose" required placeholder="请描述使用目的">
+                    </div>
+                    <div class="mb-3">
+                        <label for="reservationPriority" class="form-label">优先级</label>
+                        <select class="form-select" id="reservationPriority">
+                            <option value="low">低</option>
+                            <option value="normal" selected>正常</option>
+                            <option value="high">高</option>
+                            <option value="urgent">紧急</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="reservationNotes" class="form-label">备注</label>
+                        <textarea class="form-control" id="reservationNotes" rows="3" placeholder="预约备注（可选）"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="createReservation()">提交预约</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 审批预约模态框 -->
+<div class="modal fade" id="approvalModal" tabindex="-1" aria-labelledby="approvalModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="approvalModalLabel">审批预约</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="approvalReservationId">
+                <div id="approvalReservationInfo" class="mb-3">
+                    <!-- 预约信息将在这里显示 -->
+                </div>
+                <div class="mb-3">
+                    <label for="approvalAction" class="form-label">审批决定 *</label>
+                    <select class="form-select" id="approvalAction" required>
+                        <option value="">请选择</option>
+                        <option value="approve">批准</option>
+                        <option value="reject">拒绝</option>
+                    </select>
+                </div>
+                <div class="mb-3">
+                    <label for="approvalNotes" class="form-label">审批意见</label>
+                    <textarea class="form-control" id="approvalNotes" rows="3" placeholder="请填写审批意见"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitApproval()">提交审批</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 预约详情模态框 -->
+<div class="modal fade" id="reservationDetailModal" tabindex="-1" aria-labelledby="reservationDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="reservationDetailModalLabel">预约详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="reservationDetailContent">
+                <!-- 预约详情内容将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPage = 1;
+let currentFilters = {};
+let currentUser = null;
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadCurrentUser();
+    loadReservations();
+    loadEquipmentOptions();
+    loadUserOptions();
+    loadProjectOptions();
+    
+    // 如果URL中有equipment_id参数，预选设备
+    const urlParams = new URLSearchParams(window.location.search);
+    const equipmentId = urlParams.get('equipment_id');
+    if (equipmentId) {
+        setTimeout(() => {
+            document.getElementById('reservationEquipment').value = equipmentId;
+            new bootstrap.Modal(document.getElementById('addReservationModal')).show();
+        }, 500);
+    }
+});
+
+// 加载当前用户信息
+function loadCurrentUser() {
+    fetch('/api/current_user')
+        .then(response => response.json())
+        .then(data => {
+            currentUser = data.user;
+        })
+        .catch(error => console.error('Error loading current user:', error));
+}
+
+// 加载预约记录
+function loadReservations(page = 1) {
+    currentPage = page;
+    
+    const params = new URLSearchParams({
+        page: page,
+        per_page: 10,
+        ...currentFilters
+    });
+    
+    fetch(`/api/equipment/reservations?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            displayReservations(data.reservations);
+            displayPagination(data.total, data.pages, page);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('加载预约记录失败', 'danger');
+        });
+}
+
+// 显示预约记录
+function displayReservations(reservations) {
+    const tbody = document.getElementById('reservationTableBody');
+    tbody.innerHTML = '';
+    
+    reservations.forEach(reservation => {
+        const statusBadge = getReservationStatusBadge(reservation.status);
+        const priorityBadge = getPriorityBadge(reservation.priority);
+        const timeRange = formatTimeRange(reservation.start_time, reservation.end_time);
+        
+        const row = `
+            <tr>
+                <td>
+                    <strong>${reservation.equipment_name}</strong>
+                </td>
+                <td>${reservation.user_name}</td>
+                <td>${reservation.project_name || '-'}</td>
+                <td>${timeRange}</td>
+                <td>${reservation.purpose}</td>
+                <td>${priorityBadge}</td>
+                <td>${statusBadge}</td>
+                <td>${reservation.approved_by_name || '-'}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewReservationDetail(${reservation.id})" title="查看详情">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        ${reservation.status === 'pending' && (currentUser?.role === 'admin' || currentUser?.role === 'supervisor') ? `
+                            <button class="btn btn-sm btn-outline-warning" onclick="showApprovalModal(${reservation.id})" title="审批">
+                                <i class="fas fa-gavel"></i>
+                            </button>
+                        ` : ''}
+                        ${reservation.status === 'pending' && reservation.user_id === currentUser?.id ? `
+                            <button class="btn btn-sm btn-outline-danger" onclick="cancelReservation(${reservation.id})" title="取消预约">
+                                <i class="fas fa-times"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+// 获取预约状态标签
+function getReservationStatusBadge(status) {
+    const statusMap = {
+        'pending': '<span class="badge bg-warning">待审批</span>',
+        'approved': '<span class="badge bg-success">已批准</span>',
+        'rejected': '<span class="badge bg-danger">已拒绝</span>',
+        'cancelled': '<span class="badge bg-secondary">已取消</span>',
+        'completed': '<span class="badge bg-info">已完成</span>'
+    };
+    return statusMap[status] || `<span class="badge bg-secondary">${status}</span>`;
+}
+
+// 获取优先级标签
+function getPriorityBadge(priority) {
+    const priorityMap = {
+        'low': '<span class="badge bg-light text-dark">低</span>',
+        'normal': '<span class="badge bg-primary">正常</span>',
+        'high': '<span class="badge bg-warning">高</span>',
+        'urgent': '<span class="badge bg-danger">紧急</span>'
+    };
+    return priorityMap[priority] || `<span class="badge bg-secondary">${priority}</span>`;
+}
+
+// 格式化时间范围
+function formatTimeRange(startTime, endTime) {
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    
+    const startStr = start.toLocaleString();
+    const endStr = end.toLocaleString();
+    
+    return `${startStr}<br>至<br>${endStr}`;
+}
+
+// 搜索预约记录
+function searchReservations() {
+    currentFilters = {
+        equipment_id: document.getElementById('equipmentFilter').value,
+        status: document.getElementById('statusFilter').value,
+        user_id: document.getElementById('userFilter').value
+    };
+    loadReservations(1);
+}
+
+// 加载设备选项
+function loadEquipmentOptions() {
+    fetch('/api/equipment')
+        .then(response => response.json())
+        .then(data => {
+            const filterSelect = document.getElementById('equipmentFilter');
+            const reservationSelect = document.getElementById('reservationEquipment');
+            
+            filterSelect.innerHTML = '<option value="">全部设备</option>';
+            reservationSelect.innerHTML = '<option value="">请选择设备</option>';
+            
+            data.equipment.forEach(equipment => {
+                filterSelect.innerHTML += `<option value="${equipment.id}">${equipment.name} (${equipment.serial_number})</option>`;
+                reservationSelect.innerHTML += `<option value="${equipment.id}">${equipment.name} (${equipment.serial_number})</option>`;
+            });
+        })
+        .catch(error => console.error('Error loading equipment:', error));
+}
+
+// 加载用户选项
+function loadUserOptions() {
+    fetch('/api/users')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('userFilter');
+            select.innerHTML = '<option value="">全部用户</option>';
+            data.users.forEach(user => {
+                select.innerHTML += `<option value="${user.id}">${user.real_name} (${user.username})</option>`;
+            });
+        })
+        .catch(error => console.error('Error loading users:', error));
+}
+
+// 加载项目选项
+function loadProjectOptions() {
+    fetch('/api/projects')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('reservationProject');
+            select.innerHTML = '<option value="">请选择项目（可选）</option>';
+            data.projects.forEach(project => {
+                if (project.status === 'active') {
+                    select.innerHTML += `<option value="${project.id}">${project.name}</option>`;
+                }
+            });
+        })
+        .catch(error => console.error('Error loading projects:', error));
+}
+
+// 创建预约
+function createReservation() {
+    const form = document.getElementById('reservationForm');
+    
+    const startTime = document.getElementById('reservationStartTime').value;
+    const endTime = document.getElementById('reservationEndTime').value;
+    
+    // 验证时间
+    if (new Date(startTime) >= new Date(endTime)) {
+        showAlert('结束时间必须晚于开始时间', 'danger');
+        return;
+    }
+    
+    if (new Date(startTime) <= new Date()) {
+        showAlert('开始时间不能早于当前时间', 'danger');
+        return;
+    }
+    
+    const data = {
+        equipment_id: document.getElementById('reservationEquipment').value,
+        project_id: document.getElementById('reservationProject').value || null,
+        purpose: document.getElementById('reservationPurpose').value,
+        start_time: startTime,
+        end_time: endTime,
+        priority: document.getElementById('reservationPriority').value,
+        notes: document.getElementById('reservationNotes').value
+    };
+    
+    fetch('/api/equipment/reservations', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('预约创建成功，等待审批', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addReservationModal')).hide();
+            loadReservations(currentPage);
+            form.reset();
+        } else {
+            showAlert(data.error || '操作失败', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('操作失败', 'danger');
+    });
+}
+
+// 显示审批模态框
+function showApprovalModal(reservationId) {
+    fetch(`/api/equipment/reservations?reservation_id=${reservationId}`)
+        .then(response => response.json())
+        .then(data => {
+            const reservation = data.reservations[0];
+            if (reservation) {
+                document.getElementById('approvalReservationId').value = reservationId;
+                
+                const reservationInfo = `
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6>预约信息</h6>
+                            <p><strong>设备:</strong> ${reservation.equipment_name}</p>
+                            <p><strong>预约人:</strong> ${reservation.user_name}</p>
+                            <p><strong>项目:</strong> ${reservation.project_name || '无'}</p>
+                            <p><strong>预约时间:</strong> ${formatTimeRange(reservation.start_time, reservation.end_time)}</p>
+                            <p><strong>使用目的:</strong> ${reservation.purpose}</p>
+                            <p><strong>优先级:</strong> ${getPriorityBadge(reservation.priority)}</p>
+                            ${reservation.notes ? `<p><strong>备注:</strong> ${reservation.notes}</p>` : ''}
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('approvalReservationInfo').innerHTML = reservationInfo;
+                new bootstrap.Modal(document.getElementById('approvalModal')).show();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('加载预约信息失败', 'danger');
+        });
+}
+
+// 提交审批
+function submitApproval() {
+    const reservationId = document.getElementById('approvalReservationId').value;
+    const action = document.getElementById('approvalAction').value;
+    const notes = document.getElementById('approvalNotes').value;
+    
+    if (!action) {
+        showAlert('请选择审批决定', 'danger');
+        return;
+    }
+    
+    const data = {
+        action: action,
+        approval_notes: notes
+    };
+    
+    fetch(`/api/equipment/reservations/${reservationId}/approve`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(`预约已${action === 'approve' ? '批准' : '拒绝'}`, 'success');
+            bootstrap.Modal.getInstance(document.getElementById('approvalModal')).hide();
+            loadReservations(currentPage);
+        } else {
+            showAlert(data.error || '操作失败', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('操作失败', 'danger');
+    });
+}
+
+// 取消预约
+function cancelReservation(reservationId) {
+    if (confirm('确定要取消这个预约吗？')) {
+        // 这里应该实现取消预约的API调用
+        showAlert('取消预约功能待实现', 'info');
+    }
+}
+
+// 查看预约详情
+function viewReservationDetail(reservationId) {
+    fetch(`/api/equipment/reservations?reservation_id=${reservationId}`)
+        .then(response => response.json())
+        .then(data => {
+            const reservation = data.reservations[0];
+            if (reservation) {
+                const detailContent = `
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h6>预约信息</h6>
+                            <table class="table table-sm">
+                                <tr><th>设备名称:</th><td>${reservation.equipment_name}</td></tr>
+                                <tr><th>预约人:</th><td>${reservation.user_name}</td></tr>
+                                <tr><th>关联项目:</th><td>${reservation.project_name || '-'}</td></tr>
+                                <tr><th>预约目的:</th><td>${reservation.purpose}</td></tr>
+                                <tr><th>优先级:</th><td>${getPriorityBadge(reservation.priority)}</td></tr>
+                                <tr><th>状态:</th><td>${getReservationStatusBadge(reservation.status)}</td></tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h6>时间和审批信息</h6>
+                            <table class="table table-sm">
+                                <tr><th>开始时间:</th><td>${new Date(reservation.start_time).toLocaleString()}</td></tr>
+                                <tr><th>结束时间:</th><td>${new Date(reservation.end_time).toLocaleString()}</td></tr>
+                                <tr><th>创建时间:</th><td>${new Date(reservation.created_at).toLocaleString()}</td></tr>
+                                <tr><th>审批人:</th><td>${reservation.approved_by_name || '-'}</td></tr>
+                                <tr><th>审批时间:</th><td>${reservation.approved_at ? new Date(reservation.approved_at).toLocaleString() : '-'}</td></tr>
+                            </table>
+                        </div>
+                    </div>
+                    ${reservation.notes ? `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>预约备注</h6>
+                                <p>${reservation.notes}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+                    ${reservation.approval_notes ? `
+                        <div class="row mt-3">
+                            <div class="col-12">
+                                <h6>审批意见</h6>
+                                <p>${reservation.approval_notes}</p>
+                            </div>
+                        </div>
+                    ` : ''}
+                `;
+                
+                document.getElementById('reservationDetailContent').innerHTML = detailContent;
+                new bootstrap.Modal(document.getElementById('reservationDetailModal')).show();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('加载预约详情失败', 'danger');
+        });
+}
+
+// 显示分页
+function displayPagination(total, totalPages, currentPage) {
+    const pagination = document.getElementById('reservationPagination');
+    pagination.innerHTML = '';
+    
+    if (totalPages <= 1) return;
+    
+    // 上一页
+    if (currentPage > 1) {
+        pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadReservations(${currentPage - 1})">上一页</a></li>`;
+    }
+    
+    // 页码
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        const active = i === currentPage ? 'active' : '';
+        pagination.innerHTML += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="loadReservations(${i})">${i}</a></li>`;
+    }
+    
+    // 下一页
+    if (currentPage < totalPages) {
+        pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadReservations(${currentPage + 1})">下一页</a></li>`;
+    }
+}
+
+// 重置表单
+document.getElementById('addReservationModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('reservationForm').reset();
+});
+
+document.getElementById('approvalModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('approvalAction').value = '';
+    document.getElementById('approvalNotes').value = '';
+});
+</script>
+{% endblock %}

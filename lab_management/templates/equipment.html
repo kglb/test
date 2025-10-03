@@ -1,0 +1,553 @@
+{% extends "base.html" %}
+
+{% block title %}设备管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-cogs"></i> 设备管理</h2>
+                <div>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#addEquipmentModal" id="addEquipmentBtn">
+                        <i class="fas fa-plus"></i> 添加设备
+                    </button>
+                </div>
+            </div>
+
+            <!-- 搜索和筛选 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-4">
+                            <label for="searchInput" class="form-label">搜索设备</label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="输入设备名称、型号或序列号">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="categoryFilter" class="form-label">设备类别</label>
+                            <select class="form-select" id="categoryFilter">
+                                <option value="">全部类别</option>
+                                <option value="microscope">显微镜</option>
+                                <option value="centrifuge">离心机</option>
+                                <option value="incubator">培养箱</option>
+                                <option value="spectrophotometer">分光光度计</option>
+                                <option value="pcr">PCR仪</option>
+                                <option value="balance">天平</option>
+                                <option value="computer">计算机设备</option>
+                                <option value="other">其他</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">设备状态</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">全部状态</option>
+                                <option value="available">可用</option>
+                                <option value="in_use">使用中</option>
+                                <option value="maintenance">维护中</option>
+                                <option value="broken">故障</option>
+                                <option value="retired">已退役</option>
+                            </select>
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button class="btn btn-primary w-100" onclick="searchEquipment()">
+                                    <i class="fas fa-search"></i> 搜索
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 设备列表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>设备名称</th>
+                                    <th>型号</th>
+                                    <th>序列号</th>
+                                    <th>类别</th>
+                                    <th>位置</th>
+                                    <th>状态</th>
+                                    <th>负责人</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="equipmentTableBody">
+                                <!-- 设备列表将在这里动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分页 -->
+                    <nav aria-label="设备列表分页">
+                        <ul class="pagination justify-content-center" id="equipmentPagination">
+                            <!-- 分页按钮将在这里动态生成 -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加/编辑设备模态框 -->
+<div class="modal fade" id="addEquipmentModal" tabindex="-1" aria-labelledby="addEquipmentModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="addEquipmentModalLabel">添加设备</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="equipmentForm">
+                    <input type="hidden" id="equipmentId">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentName" class="form-label">设备名称 *</label>
+                                <input type="text" class="form-control" id="equipmentName" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentModel" class="form-label">设备型号</label>
+                                <input type="text" class="form-control" id="equipmentModel">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentSerial" class="form-label">序列号 *</label>
+                                <input type="text" class="form-control" id="equipmentSerial" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentCategory" class="form-label">设备类别 *</label>
+                                <select class="form-select" id="equipmentCategory" required>
+                                    <option value="">请选择类别</option>
+                                    <option value="microscope">显微镜</option>
+                                    <option value="centrifuge">离心机</option>
+                                    <option value="incubator">培养箱</option>
+                                    <option value="spectrophotometer">分光光度计</option>
+                                    <option value="pcr">PCR仪</option>
+                                    <option value="balance">天平</option>
+                                    <option value="computer">计算机设备</option>
+                                    <option value="other">其他</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentManufacturer" class="form-label">生产厂商</label>
+                                <input type="text" class="form-control" id="equipmentManufacturer">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentLocation" class="form-label">存放位置</label>
+                                <input type="text" class="form-control" id="equipmentLocation">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentPurchaseDate" class="form-label">购买日期</label>
+                                <input type="date" class="form-control" id="equipmentPurchaseDate">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentPrice" class="form-label">购买价格（元）</label>
+                                <input type="number" class="form-control" id="equipmentPrice" step="0.01">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentStatus" class="form-label">设备状态</label>
+                                <select class="form-select" id="equipmentStatus">
+                                    <option value="available">可用</option>
+                                    <option value="in_use">使用中</option>
+                                    <option value="maintenance">维护中</option>
+                                    <option value="broken">故障</option>
+                                    <option value="retired">已退役</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentResponsible" class="form-label">负责人</label>
+                                <select class="form-select" id="equipmentResponsible">
+                                    <option value="">请选择负责人</option>
+                                    <!-- 用户选项将动态加载 -->
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="equipmentMaintenanceCycle" class="form-label">维护周期（天）</label>
+                                <input type="number" class="form-control" id="equipmentMaintenanceCycle">
+                            </div>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="equipmentDescription" class="form-label">设备描述</label>
+                        <textarea class="form-control" id="equipmentDescription" rows="3"></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <label for="equipmentSpecifications" class="form-label">设备规格</label>
+                        <textarea class="form-control" id="equipmentSpecifications" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveEquipment()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 设备详情模态框 -->
+<div class="modal fade" id="equipmentDetailModal" tabindex="-1" aria-labelledby="equipmentDetailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="equipmentDetailModalLabel">设备详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body" id="equipmentDetailContent">
+                <!-- 设备详情内容将在这里动态加载 -->
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPage = 1;
+let currentFilters = {};
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadEquipment();
+    loadUsers(); // 加载用户列表用于负责人选择
+});
+
+// 加载设备列表
+function loadEquipment(page = 1) {
+    currentPage = page;
+    
+    const params = new URLSearchParams({
+        page: page,
+        per_page: 10,
+        ...currentFilters
+    });
+    
+    fetch(`/api/equipment?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            displayEquipment(data.equipment);
+            displayPagination(data.total, data.pages, page);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('加载设备列表失败', 'danger');
+        });
+}
+
+// 显示设备列表
+function displayEquipment(equipment) {
+    const tbody = document.getElementById('equipmentTableBody');
+    tbody.innerHTML = '';
+    
+    equipment.forEach(eq => {
+        const statusBadge = getStatusBadge(eq.status);
+        const categoryLabel = getCategoryLabel(eq.category);
+        
+        const row = `
+            <tr>
+                <td>
+                    <strong>${eq.name}</strong>
+                    ${eq.description ? `<br><small class="text-muted">${eq.description.substring(0, 50)}...</small>` : ''}
+                </td>
+                <td>${eq.model || '-'}</td>
+                <td><code>${eq.serial_number}</code></td>
+                <td>${categoryLabel}</td>
+                <td>${eq.location || '-'}</td>
+                <td>${statusBadge}</td>
+                <td>${eq.responsible_person_name || '-'}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewEquipmentDetail(${eq.id})" title="查看详情">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-warning" onclick="editEquipment(${eq.id})" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-success" onclick="useEquipment(${eq.id})" title="使用设备" ${eq.status !== 'available' ? 'disabled' : ''}>
+                            <i class="fas fa-play"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="reserveEquipment(${eq.id})" title="预约设备">
+                            <i class="fas fa-calendar-plus"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+// 获取状态标签
+function getStatusBadge(status) {
+    const statusMap = {
+        'available': '<span class="badge bg-success">可用</span>',
+        'in_use': '<span class="badge bg-warning">使用中</span>',
+        'maintenance': '<span class="badge bg-info">维护中</span>',
+        'broken': '<span class="badge bg-danger">故障</span>',
+        'retired': '<span class="badge bg-secondary">已退役</span>'
+    };
+    return statusMap[status] || `<span class="badge bg-secondary">${status}</span>`;
+}
+
+// 获取类别标签
+function getCategoryLabel(category) {
+    const categoryMap = {
+        'microscope': '显微镜',
+        'centrifuge': '离心机',
+        'incubator': '培养箱',
+        'spectrophotometer': '分光光度计',
+        'pcr': 'PCR仪',
+        'balance': '天平',
+        'computer': '计算机设备',
+        'other': '其他'
+    };
+    return categoryMap[category] || category;
+}
+
+// 搜索设备
+function searchEquipment() {
+    currentFilters = {
+        search: document.getElementById('searchInput').value,
+        category: document.getElementById('categoryFilter').value,
+        status: document.getElementById('statusFilter').value
+    };
+    loadEquipment(1);
+}
+
+// 显示分页
+function displayPagination(total, totalPages, currentPage) {
+    const pagination = document.getElementById('equipmentPagination');
+    pagination.innerHTML = '';
+    
+    if (totalPages <= 1) return;
+    
+    // 上一页
+    if (currentPage > 1) {
+        pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadEquipment(${currentPage - 1})">上一页</a></li>`;
+    }
+    
+    // 页码
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        const active = i === currentPage ? 'active' : '';
+        pagination.innerHTML += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="loadEquipment(${i})">${i}</a></li>`;
+    }
+    
+    // 下一页
+    if (currentPage < totalPages) {
+        pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadEquipment(${currentPage + 1})">下一页</a></li>`;
+    }
+}
+
+// 加载用户列表
+function loadUsers() {
+    fetch('/api/users')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('equipmentResponsible');
+            select.innerHTML = '<option value="">请选择负责人</option>';
+            data.users.forEach(user => {
+                if (user.role === 'admin' || user.role === 'supervisor') {
+                    select.innerHTML += `<option value="${user.id}">${user.real_name} (${user.username})</option>`;
+                }
+            });
+        })
+        .catch(error => console.error('Error loading users:', error));
+}
+
+// 保存设备
+function saveEquipment() {
+    const form = document.getElementById('equipmentForm');
+    const equipmentId = document.getElementById('equipmentId').value;
+    
+    const data = {
+        name: document.getElementById('equipmentName').value,
+        model: document.getElementById('equipmentModel').value,
+        serial_number: document.getElementById('equipmentSerial').value,
+        category: document.getElementById('equipmentCategory').value,
+        manufacturer: document.getElementById('equipmentManufacturer').value,
+        location: document.getElementById('equipmentLocation').value,
+        purchase_date: document.getElementById('equipmentPurchaseDate').value,
+        purchase_price: document.getElementById('equipmentPrice').value,
+        status: document.getElementById('equipmentStatus').value,
+        responsible_person_id: document.getElementById('equipmentResponsible').value || null,
+        maintenance_cycle: document.getElementById('equipmentMaintenanceCycle').value,
+        description: document.getElementById('equipmentDescription').value,
+        specifications: document.getElementById('equipmentSpecifications').value
+    };
+    
+    const url = equipmentId ? `/api/equipment/${equipmentId}` : '/api/equipment';
+    const method = equipmentId ? 'PUT' : 'POST';
+    
+    fetch(url, {
+        method: method,
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert(equipmentId ? '设备更新成功' : '设备创建成功', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('addEquipmentModal')).hide();
+            loadEquipment(currentPage);
+            form.reset();
+            document.getElementById('equipmentId').value = '';
+        } else {
+            showAlert(data.error || '操作失败', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('操作失败', 'danger');
+    });
+}
+
+// 编辑设备
+function editEquipment(equipmentId) {
+    fetch(`/api/equipment/${equipmentId}`)
+        .then(response => response.json())
+        .then(equipment => {
+            document.getElementById('equipmentId').value = equipment.id;
+            document.getElementById('equipmentName').value = equipment.name;
+            document.getElementById('equipmentModel').value = equipment.model || '';
+            document.getElementById('equipmentSerial').value = equipment.serial_number;
+            document.getElementById('equipmentCategory').value = equipment.category;
+            document.getElementById('equipmentManufacturer').value = equipment.manufacturer || '';
+            document.getElementById('equipmentLocation').value = equipment.location || '';
+            document.getElementById('equipmentPurchaseDate').value = equipment.purchase_date || '';
+            document.getElementById('equipmentPrice').value = equipment.purchase_price || '';
+            document.getElementById('equipmentStatus').value = equipment.status;
+            document.getElementById('equipmentResponsible').value = equipment.responsible_person_id || '';
+            document.getElementById('equipmentMaintenanceCycle').value = equipment.maintenance_cycle || '';
+            document.getElementById('equipmentDescription').value = equipment.description || '';
+            document.getElementById('equipmentSpecifications').value = equipment.specifications || '';
+            
+            document.getElementById('addEquipmentModalLabel').textContent = '编辑设备';
+            new bootstrap.Modal(document.getElementById('addEquipmentModal')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('加载设备信息失败', 'danger');
+        });
+}
+
+// 查看设备详情
+function viewEquipmentDetail(equipmentId) {
+    fetch(`/api/equipment/${equipmentId}`)
+        .then(response => response.json())
+        .then(equipment => {
+            const detailContent = `
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6>基本信息</h6>
+                        <table class="table table-sm">
+                            <tr><th>设备名称:</th><td>${equipment.name}</td></tr>
+                            <tr><th>设备型号:</th><td>${equipment.model || '-'}</td></tr>
+                            <tr><th>序列号:</th><td><code>${equipment.serial_number}</code></td></tr>
+                            <tr><th>类别:</th><td>${getCategoryLabel(equipment.category)}</td></tr>
+                            <tr><th>生产厂商:</th><td>${equipment.manufacturer || '-'}</td></tr>
+                            <tr><th>存放位置:</th><td>${equipment.location || '-'}</td></tr>
+                            <tr><th>状态:</th><td>${getStatusBadge(equipment.status)}</td></tr>
+                            <tr><th>负责人:</th><td>${equipment.responsible_person_name || '-'}</td></tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <h6>购买和维护信息</h6>
+                        <table class="table table-sm">
+                            <tr><th>购买日期:</th><td>${equipment.purchase_date || '-'}</td></tr>
+                            <tr><th>购买价格:</th><td>${equipment.purchase_price ? '¥' + equipment.purchase_price : '-'}</td></tr>
+                            <tr><th>维护周期:</th><td>${equipment.maintenance_cycle ? equipment.maintenance_cycle + '天' : '-'}</td></tr>
+                            <tr><th>上次维护:</th><td>${equipment.last_maintenance || '-'}</td></tr>
+                            <tr><th>下次维护:</th><td>${equipment.next_maintenance || '-'}</td></tr>
+                            <tr><th>创建时间:</th><td>${equipment.created_at ? new Date(equipment.created_at).toLocaleString() : '-'}</td></tr>
+                            <tr><th>创建人:</th><td>${equipment.created_by_name || '-'}</td></tr>
+                        </table>
+                    </div>
+                </div>
+                ${equipment.description ? `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>设备描述</h6>
+                            <p>${equipment.description}</p>
+                        </div>
+                    </div>
+                ` : ''}
+                ${equipment.specifications ? `
+                    <div class="row mt-3">
+                        <div class="col-12">
+                            <h6>设备规格</h6>
+                            <pre class="bg-light p-3">${equipment.specifications}</pre>
+                        </div>
+                    </div>
+                ` : ''}
+            `;
+            
+            document.getElementById('equipmentDetailContent').innerHTML = detailContent;
+            new bootstrap.Modal(document.getElementById('equipmentDetailModal')).show();
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('加载设备详情失败', 'danger');
+        });
+}
+
+// 使用设备（跳转到使用页面）
+function useEquipment(equipmentId) {
+    window.location.href = `/equipment/usage?equipment_id=${equipmentId}`;
+}
+
+// 预约设备（跳转到预约页面）
+function reserveEquipment(equipmentId) {
+    window.location.href = `/equipment/reservations?equipment_id=${equipmentId}`;
+}
+
+// 重置添加设备表单
+document.getElementById('addEquipmentModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('equipmentForm').reset();
+    document.getElementById('equipmentId').value = '';
+    document.getElementById('addEquipmentModalLabel').textContent = '添加设备';
+});
+
+// 搜索框回车事件
+document.getElementById('searchInput').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+        searchEquipment();
+    }
+});
+</script>
+{% endblock %}

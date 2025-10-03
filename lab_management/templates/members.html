@@ -1,0 +1,728 @@
+{% extends "base.html" %}
+
+{% block title %}成员管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2>成员管理</h2>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addMemberModal">
+                        <i class="fas fa-plus"></i> 添加成员
+                    </button>
+                    <button class="btn btn-info" onclick="viewMemberHistory()">
+                        <i class="fas fa-history"></i> 历史记录
+                    </button>
+                </div>
+            </div>
+
+            <!-- 筛选器 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="roleFilter" class="form-label">角色筛选</label>
+                            <select class="form-select" id="roleFilter" onchange="loadMembers()">
+                                <option value="">全部角色</option>
+                                <option value="admin">管理员</option>
+                                <option value="pi">PI</option>
+                                <option value="supervisor">导师</option>
+                                <option value="student">学生</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">状态筛选</label>
+                            <select class="form-select" id="statusFilter" onchange="loadMembers()">
+                                <option value="">全部状态</option>
+                                <option value="active">在组</option>
+                                <option value="inactive">离组</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="searchInput" class="form-label">搜索</label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="姓名、学号、专业..." onkeyup="loadMembers()">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="advisorFilter" class="form-label">导师筛选</label>
+                            <select class="form-select" id="advisorFilter" onchange="loadMembers()">
+                                <option value="">全部导师</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 成员列表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>姓名</th>
+                                    <th>角色</th>
+                                    <th>学号</th>
+                                    <th>专业/年级</th>
+                                    <th>研究方向</th>
+                                    <th>导师</th>
+                                    <th>入组时间</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="membersTableBody">
+                                <!-- 动态加载成员数据 -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加成员模态框 -->
+<div class="modal fade" id="addMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加新成员</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addMemberForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="username" class="form-label">用户名 *</label>
+                                <input type="text" class="form-control" id="username" name="username" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="real_name" class="form-label">真实姓名 *</label>
+                                <input type="text" class="form-control" id="real_name" name="real_name" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="email" class="form-label">邮箱 *</label>
+                                <input type="email" class="form-control" id="email" name="email" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="password" class="form-label">密码 *</label>
+                                <input type="password" class="form-control" id="password" name="password" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="role" class="form-label">角色 *</label>
+                                <select class="form-select" id="role" name="role" required>
+                                    <option value="student">学生</option>
+                                    <option value="supervisor">导师</option>
+                                    <option value="pi">PI</option>
+                                    <option value="admin">管理员</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="student_id" class="form-label">学号</label>
+                                <input type="text" class="form-control" id="student_id" name="student_id">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="major" class="form-label">专业</label>
+                                <input type="text" class="form-control" id="major" name="major">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="grade" class="form-label">年级</label>
+                                <input type="text" class="form-control" id="grade" name="grade">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="phone" class="form-label">联系电话</label>
+                                <input type="text" class="form-control" id="phone" name="phone">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="advisor_id" class="form-label">导师</label>
+                                <select class="form-select" id="advisor_id" name="advisor_id">
+                                    <option value="">请选择导师</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="join_date" class="form-label">入组时间</label>
+                                <input type="date" class="form-control" id="join_date" name="join_date">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="office_location" class="form-label">办公地点</label>
+                                <input type="text" class="form-control" id="office_location" name="office_location">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="research_direction" class="form-label">研究方向</label>
+                        <input type="text" class="form-control" id="research_direction" name="research_direction">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="bio" class="form-label">个人简介</label>
+                        <textarea class="form-control" id="bio" name="bio" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="emergency_contact" class="form-label">紧急联系人</label>
+                                <input type="text" class="form-control" id="emergency_contact" name="emergency_contact">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="emergency_phone" class="form-label">紧急联系电话</label>
+                                <input type="text" class="form-control" id="emergency_phone" name="emergency_phone">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitMember()">添加成员</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 编辑成员模态框 -->
+<div class="modal fade" id="editMemberModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">编辑成员信息</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="editMemberForm">
+                    <input type="hidden" id="edit_user_id" name="user_id">
+                    <!-- 与添加表单类似的字段 -->
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_real_name" class="form-label">真实姓名 *</label>
+                                <input type="text" class="form-control" id="edit_real_name" name="real_name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_email" class="form-label">邮箱 *</label>
+                                <input type="email" class="form-control" id="edit_email" name="email" required>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_role" class="form-label">角色 *</label>
+                                <select class="form-select" id="edit_role" name="role" required>
+                                    <option value="student">学生</option>
+                                    <option value="supervisor">导师</option>
+                                    <option value="pi">PI</option>
+                                    <option value="admin">管理员</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_status" class="form-label">状态</label>
+                                <select class="form-select" id="edit_status" name="status">
+                                    <option value="active">在组</option>
+                                    <option value="inactive">离组</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_student_id" class="form-label">学号</label>
+                                <input type="text" class="form-control" id="edit_student_id" name="student_id">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_major" class="form-label">专业</label>
+                                <input type="text" class="form-control" id="edit_major" name="major">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_grade" class="form-label">年级</label>
+                                <input type="text" class="form-control" id="edit_grade" name="grade">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_phone" class="form-label">联系电话</label>
+                                <input type="text" class="form-control" id="edit_phone" name="phone">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_advisor_id" class="form-label">导师</label>
+                                <select class="form-select" id="edit_advisor_id" name="advisor_id">
+                                    <option value="">请选择导师</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_leave_date" class="form-label">离组时间</label>
+                                <input type="date" class="form-control" id="edit_leave_date" name="leave_date">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_office_location" class="form-label">办公地点</label>
+                                <input type="text" class="form-control" id="edit_office_location" name="office_location">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_research_direction" class="form-label">研究方向</label>
+                                <input type="text" class="form-control" id="edit_research_direction" name="research_direction">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="edit_bio" class="form-label">个人简介</label>
+                        <textarea class="form-control" id="edit_bio" name="bio" rows="3"></textarea>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_emergency_contact" class="form-label">紧急联系人</label>
+                                <input type="text" class="form-control" id="edit_emergency_contact" name="emergency_contact">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="edit_emergency_phone" class="form-label">紧急联系电话</label>
+                                <input type="text" class="form-control" id="edit_emergency_phone" name="emergency_phone">
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="updateMember()">保存更改</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 成员历史记录模态框 -->
+<div class="modal fade" id="memberHistoryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">成员历史记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="row mb-3">
+                    <div class="col-md-3">
+                        <select class="form-select" id="historyActionFilter" onchange="loadMemberHistory()">
+                            <option value="">全部操作</option>
+                            <option value="join">入组</option>
+                            <option value="leave">离组</option>
+                            <option value="role_change">角色变更</option>
+                            <option value="update">信息更新</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="historyStartDate" onchange="loadMemberHistory()">
+                    </div>
+                    <div class="col-md-3">
+                        <input type="date" class="form-control" id="historyEndDate" onchange="loadMemberHistory()">
+                    </div>
+                    <div class="col-md-3">
+                        <button class="btn btn-secondary" onclick="clearHistoryFilters()">清除筛选</button>
+                    </div>
+                </div>
+                
+                <div class="table-responsive">
+                    <table class="table table-striped">
+                        <thead>
+                            <tr>
+                                <th>时间</th>
+                                <th>成员</th>
+                                <th>操作类型</th>
+                                <th>描述</th>
+                                <th>操作者</th>
+                            </tr>
+                        </thead>
+                        <tbody id="memberHistoryTableBody">
+                            <!-- 动态加载历史记录 -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let members = [];
+let advisors = [];
+
+$(document).ready(function() {
+    loadAdvisors();
+    loadMembers();
+});
+
+function loadAdvisors() {
+    $.get('/api/users', function(data) {
+        advisors = data.filter(user => user.role === 'pi' || user.role === 'supervisor');
+        
+        // 填充导师选择框
+        const advisorSelects = ['#advisor_id', '#edit_advisor_id', '#advisorFilter'];
+        advisorSelects.forEach(selector => {
+            const $select = $(selector);
+            if (selector === '#advisorFilter') {
+                $select.append('<option value="">全部导师</option>');
+            } else {
+                $select.append('<option value="">请选择导师</option>');
+            }
+            
+            advisors.forEach(advisor => {
+                $select.append(`<option value="${advisor.id}">${advisor.real_name}</option>`);
+            });
+        });
+    });
+}
+
+function loadMembers() {
+    const roleFilter = $('#roleFilter').val();
+    const statusFilter = $('#statusFilter').val();
+    const searchInput = $('#searchInput').val();
+    const advisorFilter = $('#advisorFilter').val();
+    
+    $.get('/api/users', function(data) {
+        members = data.filter(member => {
+            if (roleFilter && member.role !== roleFilter) return false;
+            if (statusFilter && member.status !== statusFilter) return false;
+            if (advisorFilter && member.advisor_id != advisorFilter) return false;
+            if (searchInput) {
+                const search = searchInput.toLowerCase();
+                return member.real_name.toLowerCase().includes(search) ||
+                       (member.student_id && member.student_id.toLowerCase().includes(search)) ||
+                       (member.major && member.major.toLowerCase().includes(search));
+            }
+            return true;
+        });
+        
+        renderMembersTable();
+    });
+}
+
+function renderMembersTable() {
+    const tbody = $('#membersTableBody');
+    tbody.empty();
+    
+    members.forEach(member => {
+        const statusBadge = member.status === 'active' ? 
+            '<span class="badge bg-success">在组</span>' : 
+            '<span class="badge bg-secondary">离组</span>';
+            
+        const roleBadge = getRoleBadge(member.role);
+        
+        const row = `
+            <tr>
+                <td>
+                    <div class="d-flex align-items-center">
+                        <div class="avatar-sm bg-primary text-white rounded-circle d-flex align-items-center justify-content-center me-2">
+                            ${member.real_name.charAt(0)}
+                        </div>
+                        <div>
+                            <div class="fw-bold">${member.real_name}</div>
+                            <small class="text-muted">${member.email}</small>
+                        </div>
+                    </div>
+                </td>
+                <td>${roleBadge}</td>
+                <td>${member.student_id || '-'}</td>
+                <td>
+                    <div>${member.major || '-'}</div>
+                    <small class="text-muted">${member.grade || ''}</small>
+                </td>
+                <td>${member.research_direction || '-'}</td>
+                <td>${member.advisor_name || '-'}</td>
+                <td>${member.join_date || '-'}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editMember(${member.id})" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="viewMemberDetail(${member.id})" title="详情">
+                            <i class="fas fa-eye"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-secondary" onclick="viewMemberHistory(${member.id})" title="历史">
+                            <i class="fas fa-history"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+}
+
+function getRoleBadge(role) {
+    const badges = {
+        'admin': '<span class="badge bg-danger">管理员</span>',
+        'pi': '<span class="badge bg-primary">PI</span>',
+        'supervisor': '<span class="badge bg-info">导师</span>',
+        'student': '<span class="badge bg-success">学生</span>'
+    };
+    return badges[role] || '<span class="badge bg-secondary">未知</span>';
+}
+
+function submitMember() {
+    const formData = new FormData(document.getElementById('addMemberForm'));
+    const memberData = Object.fromEntries(formData.entries());
+    
+    // 移除空值
+    Object.keys(memberData).forEach(key => {
+        if (memberData[key] === '') {
+            delete memberData[key];
+        }
+    });
+    
+    $.ajax({
+        url: '/api/users',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(memberData),
+        success: function(response) {
+            $('#addMemberModal').modal('hide');
+            $('#addMemberForm')[0].reset();
+            loadMembers();
+            showAlert('成员添加成功！', 'success');
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON?.error || '添加失败';
+            showAlert(error, 'danger');
+        }
+    });
+}
+
+function editMember(userId) {
+    const member = members.find(m => m.id === userId);
+    if (!member) return;
+    
+    // 填充编辑表单
+    $('#edit_user_id').val(member.id);
+    $('#edit_real_name').val(member.real_name);
+    $('#edit_email').val(member.email);
+    $('#edit_role').val(member.role);
+    $('#edit_status').val(member.status);
+    $('#edit_student_id').val(member.student_id || '');
+    $('#edit_major').val(member.major || '');
+    $('#edit_grade').val(member.grade || '');
+    $('#edit_phone').val(member.phone || '');
+    $('#edit_advisor_id').val(member.advisor_id || '');
+    $('#edit_leave_date').val(member.leave_date || '');
+    $('#edit_office_location').val(member.office_location || '');
+    $('#edit_research_direction').val(member.research_direction || '');
+    $('#edit_bio').val(member.bio || '');
+    $('#edit_emergency_contact').val(member.emergency_contact || '');
+    $('#edit_emergency_phone').val(member.emergency_phone || '');
+    
+    $('#editMemberModal').modal('show');
+}
+
+function updateMember() {
+    const userId = $('#edit_user_id').val();
+    const formData = new FormData(document.getElementById('editMemberForm'));
+    const memberData = Object.fromEntries(formData.entries());
+    
+    // 移除空值
+    Object.keys(memberData).forEach(key => {
+        if (memberData[key] === '') {
+            delete memberData[key];
+        }
+    });
+    
+    delete memberData.user_id; // 移除ID字段
+    
+    $.ajax({
+        url: `/api/users/${userId}`,
+        method: 'PUT',
+        contentType: 'application/json',
+        data: JSON.stringify(memberData),
+        success: function(response) {
+            $('#editMemberModal').modal('hide');
+            loadMembers();
+            showAlert('成员信息更新成功！', 'success');
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON?.error || '更新失败';
+            showAlert(error, 'danger');
+        }
+    });
+}
+
+function viewMemberHistory(userId = null) {
+    $('#memberHistoryModal').modal('show');
+    loadMemberHistory(userId);
+}
+
+function loadMemberHistory(userId = null) {
+    const actionFilter = $('#historyActionFilter').val();
+    const startDate = $('#historyStartDate').val();
+    const endDate = $('#historyEndDate').val();
+    
+    let url = userId ? `/api/users/${userId}/history` : '/api/member_history';
+    const params = new URLSearchParams();
+    
+    if (actionFilter) params.append('action_type', actionFilter);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    if (params.toString()) {
+        url += '?' + params.toString();
+    }
+    
+    $.get(url, function(data) {
+        const history = Array.isArray(data) ? data : data.history;
+        renderHistoryTable(history);
+    });
+}
+
+function renderHistoryTable(history) {
+    const tbody = $('#memberHistoryTableBody');
+    tbody.empty();
+    
+    history.forEach(record => {
+        const actionBadge = getActionBadge(record.action_type);
+        const row = `
+            <tr>
+                <td>${new Date(record.created_at).toLocaleString()}</td>
+                <td>${record.member_name || '-'}</td>
+                <td>${actionBadge}</td>
+                <td>${record.description}</td>
+                <td>${record.operator_name || '-'}</td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+}
+
+function getActionBadge(actionType) {
+    const badges = {
+        'join': '<span class="badge bg-success">入组</span>',
+        'leave': '<span class="badge bg-danger">离组</span>',
+        'role_change': '<span class="badge bg-warning">角色变更</span>',
+        'update': '<span class="badge bg-info">信息更新</span>'
+    };
+    return badges[actionType] || '<span class="badge bg-secondary">其他</span>';
+}
+
+function clearHistoryFilters() {
+    $('#historyActionFilter').val('');
+    $('#historyStartDate').val('');
+    $('#historyEndDate').val('');
+    loadMemberHistory();
+}
+
+function showAlert(message, type) {
+    const alertDiv = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    
+    // 在页面顶部显示提示
+    $('.container-fluid').prepend(alertDiv);
+    
+    // 3秒后自动隐藏
+    setTimeout(() => {
+        $('.alert').fadeOut();
+    }, 3000);
+}
+</script>
+
+<style>
+.avatar-sm {
+    width: 32px;
+    height: 32px;
+    font-size: 14px;
+}
+
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.btn-group .btn {
+    border-radius: 0.25rem;
+    margin-right: 2px;
+}
+
+.modal-lg {
+    max-width: 800px;
+}
+
+.modal-xl {
+    max-width: 1140px;
+}
+</style>
+{% endblock %}

@@ -1,0 +1,379 @@
+{% extends "base.html" %}
+
+{% block title %}用户管理 - 课题组管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-users"></i> 用户管理</h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#userModal" onclick="openUserModal()" id="addUserBtn">
+                <i class="fas fa-plus"></i> 新建成员
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 成员列表 -->
+<div class="card">
+    <div class="card-body">
+        <div id="usersList">
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 用户编辑模态框 -->
+<div class="modal fade" id="userModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="userModalTitle">新建成员</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="userForm">
+                    <input type="hidden" id="userId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="userRealName" class="form-label">真实姓名 *</label>
+                            <input type="text" class="form-control" id="userRealName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="userName" class="form-label">用户名 *</label>
+                            <input type="text" class="form-control" id="userName" required>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="userEmail" class="form-label">邮箱 *</label>
+                            <input type="email" class="form-control" id="userEmail" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="userStudentId" class="form-label">学号</label>
+                            <input type="text" class="form-control" id="userStudentId">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="userRole" class="form-label">角色</label>
+                            <select class="form-select" id="userRole">
+                                <option value="member">成员</option>
+                                <option value="supervisor">导师</option>
+                                <option value="admin">管理员</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="userPhone" class="form-label">电话</label>
+                            <input type="tel" class="form-control" id="userPhone">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="userMajor" class="form-label">专业</label>
+                            <input type="text" class="form-control" id="userMajor">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="userPassword" class="form-label">密码 <span id="passwordNote" class="text-muted">(新建时必填)</span></label>
+                            <input type="password" class="form-control" id="userPassword">
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check">
+                                <input class="form-check-input" type="checkbox" id="userIsActive" checked>
+                                <label class="form-check-label" for="userIsActive">
+                                    账户激活
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveUser()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentUser = null;
+    let users = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
+        loadUsers();
+    });
+
+    async function checkAuth() {
+        try {
+            const response = await fetch('/api/current_user');
+            if (response.ok) {
+                currentUser = await response.json();
+                document.getElementById('currentUserName').textContent = currentUser.real_name;
+                
+                // 只有管理员才能看到新建按钮
+                if (currentUser.role !== 'admin') {
+                    document.getElementById('addUserBtn').style.display = 'none';
+                }
+            } else {
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            window.location.href = '/login';
+        }
+    }
+
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/users');
+            if (response.ok) {
+                users = await response.json();
+                displayUsers();
+            }
+        } catch (error) {
+            showToast('加载成员失败', 'error');
+        }
+    }
+
+    function displayUsers() {
+        const container = document.getElementById('usersList');
+        
+        if (users.length === 0) {
+            container.innerHTML = '<p class="text-muted">暂无成员</p>';
+            return;
+        }
+
+        const html = `
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>姓名</th>
+                            <th>用户名</th>
+                            <th>邮箱</th>
+                            <th>角色</th>
+                            <th>学号</th>
+                            <th>专业</th>
+                            <th>电话</th>
+                            <th>状态</th>
+                            <th>加入时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${users.map(user => `
+                            <tr>
+                                <td><strong>${user.real_name}</strong></td>
+                                <td>${user.username}</td>
+                                <td>${user.email}</td>
+                                <td><span class="badge bg-${getRoleColor(user.role)}">${getRoleText(user.role)}</span></td>
+                                <td>${user.student_id || '-'}</td>
+                                <td>${user.major || '-'}</td>
+                                <td>${user.phone || '-'}</td>
+                                <td>
+                                    <span class="badge bg-${user.is_active ? 'success' : 'danger'}">
+                                        ${user.is_active ? '激活' : '禁用'}
+                                    </span>
+                                </td>
+                                <td>${formatDate(user.join_date)}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        ${currentUser.role === 'admin' ? `
+                                            <button class="btn btn-outline-primary" onclick="editUser(${user.id})" title="编辑">
+                                                <i class="fas fa-edit"></i>
+                                            </button>
+                                            <button class="btn btn-outline-${user.is_active ? 'warning' : 'success'}" 
+                                                    onclick="toggleUserStatus(${user.id})" 
+                                                    title="${user.is_active ? '禁用' : '启用'}">
+                                                <i class="fas fa-${user.is_active ? 'user-slash' : 'user-check'}"></i>
+                                            </button>
+                                            ${user.id !== currentUser.id ? `
+                                                <button class="btn btn-outline-danger" onclick="deleteUser(${user.id})" title="删除">
+                                                    <i class="fas fa-trash"></i>
+                                                </button>
+                                            ` : ''}
+                                        ` : ''}
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    function openUserModal(userId = null) {
+        const modal = document.getElementById('userModal');
+        const title = document.getElementById('userModalTitle');
+        const form = document.getElementById('userForm');
+        const passwordNote = document.getElementById('passwordNote');
+        const passwordField = document.getElementById('userPassword');
+        
+        form.reset();
+        document.getElementById('userId').value = userId || '';
+        
+        if (userId) {
+            title.textContent = '编辑成员';
+            passwordNote.textContent = '(留空则不修改)';
+            passwordField.required = false;
+            
+            const user = users.find(u => u.id === userId);
+            if (user) {
+                document.getElementById('userRealName').value = user.real_name;
+                document.getElementById('userName').value = user.username;
+                document.getElementById('userEmail').value = user.email;
+                document.getElementById('userStudentId').value = user.student_id || '';
+                document.getElementById('userRole').value = user.role;
+                document.getElementById('userPhone').value = user.phone || '';
+                document.getElementById('userMajor').value = user.major || '';
+                document.getElementById('userIsActive').checked = user.is_active;
+            }
+        } else {
+            title.textContent = '新建成员';
+            passwordNote.textContent = '(新建时必填)';
+            passwordField.required = true;
+            document.getElementById('userIsActive').checked = true;
+        }
+    }
+
+    function editUser(userId) {
+        openUserModal(userId);
+        new bootstrap.Modal(document.getElementById('userModal')).show();
+    }
+
+    async function saveUser() {
+        const userId = document.getElementById('userId').value;
+        const password = document.getElementById('userPassword').value;
+        
+        // 新建用户时密码必填
+        if (!userId && !password) {
+            showToast('新建用户时密码不能为空', 'warning');
+            return;
+        }
+
+        const data = {
+            real_name: document.getElementById('userRealName').value,
+            username: document.getElementById('userName').value,
+            email: document.getElementById('userEmail').value,
+            student_id: document.getElementById('userStudentId').value,
+            role: document.getElementById('userRole').value,
+            phone: document.getElementById('userPhone').value,
+            major: document.getElementById('userMajor').value,
+            is_active: document.getElementById('userIsActive').checked
+        };
+
+        // 只有当密码不为空时才包含密码字段
+        if (password) {
+            data.password = password;
+        }
+
+        try {
+            const url = userId ? `/api/users/${userId}` : '/api/users';
+            const method = userId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showToast(`成员${userId ? '更新' : '创建'}成功`, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('userModal')).hide();
+                loadUsers();
+            } else {
+                const error = await response.json();
+                showToast(error.error || `成员${userId ? '更新' : '创建'}失败`, 'error');
+            }
+        } catch (error) {
+            showToast(`成员${userId ? '更新' : '创建'}失败`, 'error');
+        }
+    }
+
+    async function toggleUserStatus(userId) {
+        const user = users.find(u => u.id === userId);
+        if (!user) return;
+
+        const newStatus = !user.is_active;
+        const action = newStatus ? '启用' : '禁用';
+        
+        if (!confirm(`确定要${action}这个用户吗？`)) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_active: newStatus })
+            });
+
+            if (response.ok) {
+                showToast(`用户${action}成功`, 'success');
+                loadUsers();
+            } else {
+                showToast(`用户${action}失败`, 'error');
+            }
+        } catch (error) {
+            showToast(`用户${action}失败`, 'error');
+        }
+    }
+
+    async function deleteUser(userId) {
+        if (!confirm('确定要删除这个用户吗？此操作不可恢复。')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/users/${userId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showToast('用户删除成功', 'success');
+                loadUsers();
+            } else {
+                showToast('用户删除失败', 'error');
+            }
+        } catch (error) {
+            showToast('用户删除失败', 'error');
+        }
+    }
+
+    // 工具函数
+    function getRoleColor(role) {
+        switch (role) {
+            case 'admin': return 'danger';
+            case 'supervisor': return 'warning';
+            case 'member': return 'primary';
+            default: return 'secondary';
+        }
+    }
+
+    function getRoleText(role) {
+        switch (role) {
+            case 'admin': return '管理员';
+            case 'supervisor': return '导师';
+            case 'member': return '成员';
+            default: return role;
+        }
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN');
+    }
+</script>
+{% endblock %}

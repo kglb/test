@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>课题组管理系统</title>
+</head>
+<body>
+    <script>
+        // 检查是否已登录
+        fetch('/api/current_user')
+            .then(response => {
+                if (response.ok) {
+                    // 已登录，跳转到仪表板
+                    window.location.href = '/dashboard';
+                } else {
+                    // 未登录，显示着陆页
+                    window.location.href = '/landing';
+                }
+            })
+            .catch(() => {
+                // 出错时显示着陆页
+                window.location.href = '/landing';
+            });
+    </script>
+</body>
+</html>

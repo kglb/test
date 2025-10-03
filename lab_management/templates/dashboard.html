@@ -1,0 +1,415 @@
+{% extends "base.html" %}
+
+{% block title %}仪表板{% endblock %}
+
+{% block page_title %}仪表板{% endblock %}
+
+{% block content %}
+<!-- 统计卡片 -->
+<div class="row mb-4">
+    <div class="col-md-3 mb-3">
+        <div class="card bg-primary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">总用户数</h5>
+                        <h2 id="totalUsers">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-users fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">活跃项目</h5>
+                        <h2 id="activeProjects">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-project-diagram fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">待办任务</h5>
+                        <h2 id="pendingTasks">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-tasks fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-info text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">已完成任务</h5>
+                        <h2 id="completedTasks">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 设备管理统计卡片 -->
+<div class="row mb-4">
+    <div class="col-12">
+        <h3 class="mb-3">
+            <i class="fas fa-cogs"></i> 设备管理概览
+        </h3>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-secondary text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">设备总数</h5>
+                        <h2 id="totalEquipment">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-cogs fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-success text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">可用设备</h5>
+                        <h2 id="availableEquipment">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-check-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-warning text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">使用中</h5>
+                        <h2 id="inUseEquipment">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-play-circle fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-3 mb-3">
+        <div class="card bg-danger text-white">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <h5 class="card-title">待审批预约</h5>
+                        <h2 id="pendingReservations">0</h2>
+                    </div>
+                    <div class="align-self-center">
+                        <i class="fas fa-calendar-check fa-2x"></i>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="row">
+    <!-- 最近项目 -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-project-diagram"></i> 最近项目
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="recentProjects">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 我的任务 -->
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-tasks"></i> 我的任务
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="myTasks">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 最新公告 -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0">
+                    <i class="fas fa-bullhorn"></i> 最新公告
+                </h5>
+            </div>
+            <div class="card-body">
+                <div id="recentAnnouncements">
+                    <div class="text-center">
+                        <div class="spinner-border" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentUser = null;
+
+    // 页面加载时获取数据
+    document.addEventListener('DOMContentLoaded', function() {
+        loadDashboardData();
+    });
+
+    async function loadDashboardData() {
+        try {
+            // 获取当前用户信息
+            const userResponse = await fetch('/api/current_user');
+            if (userResponse.ok) {
+                currentUser = await userResponse.json();
+                document.getElementById('currentUserName').textContent = currentUser.real_name;
+            } else {
+                window.location.href = '/login';
+                return;
+            }
+
+            // 获取统计数据
+            const statsResponse = await fetch('/api/statistics');
+            if (statsResponse.ok) {
+                const stats = await statsResponse.json();
+                updateStatistics(stats);
+            }
+
+            // 获取最近项目
+            const projectsResponse = await fetch('/api/projects');
+            if (projectsResponse.ok) {
+                const projects = await projectsResponse.json();
+                displayRecentProjects(projects.slice(0, 5));
+            }
+
+            // 获取我的任务
+            const tasksResponse = await fetch(`/api/tasks?assignee_id=${currentUser.id}`);
+            if (tasksResponse.ok) {
+                const tasks = await tasksResponse.json();
+                displayMyTasks(tasks.slice(0, 5));
+            }
+
+            // 获取最新公告
+            const announcementsResponse = await fetch('/api/announcements');
+            if (announcementsResponse.ok) {
+                const announcements = await announcementsResponse.json();
+                displayRecentAnnouncements(announcements.slice(0, 3));
+            }
+
+        } catch (error) {
+            console.error('加载数据失败:', error);
+            showToast('加载数据失败', 'error');
+        }
+    }
+
+    function updateStatistics(stats) {
+        document.getElementById('totalUsers').textContent = stats.total_users;
+        document.getElementById('activeProjects').textContent = stats.active_projects;
+        document.getElementById('pendingTasks').textContent = stats.pending_tasks;
+        document.getElementById('completedTasks').textContent = stats.completed_tasks;
+        
+        // 设备管理统计
+        document.getElementById('totalEquipment').textContent = stats.total_equipment || 0;
+        document.getElementById('availableEquipment').textContent = stats.available_equipment || 0;
+        document.getElementById('inUseEquipment').textContent = stats.in_use_equipment || 0;
+        document.getElementById('pendingReservations').textContent = stats.pending_reservations || 0;
+    }
+
+    function displayRecentProjects(projects) {
+        const container = document.getElementById('recentProjects');
+        
+        if (projects.length === 0) {
+            container.innerHTML = '<p class="text-muted">暂无项目</p>';
+            return;
+        }
+
+        const html = projects.map(project => `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+                <div>
+                    <h6 class="mb-0">${project.name}</h6>
+                    <small class="text-muted">负责人: ${project.leader_name}</small>
+                </div>
+                <div>
+                    <span class="badge bg-${getStatusColor(project.status)}">${getStatusText(project.status)}</span>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
+    function displayMyTasks(tasks) {
+        const container = document.getElementById('myTasks');
+        
+        if (tasks.length === 0) {
+            container.innerHTML = '<p class="text-muted">暂无任务</p>';
+            return;
+        }
+
+        const html = tasks.map(task => `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border-bottom">
+                <div>
+                    <h6 class="mb-0">${task.title}</h6>
+                    <small class="text-muted">项目: ${task.project_name}</small>
+                </div>
+                <div>
+                    <span class="badge bg-${getTaskStatusColor(task.status)}">${getTaskStatusText(task.status)}</span>
+                    <span class="badge bg-${getPriorityColor(task.priority)} ms-1">${getPriorityText(task.priority)}</span>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
+    function displayRecentAnnouncements(announcements) {
+        const container = document.getElementById('recentAnnouncements');
+        
+        if (announcements.length === 0) {
+            container.innerHTML = '<p class="text-muted">暂无公告</p>';
+            return;
+        }
+
+        const html = announcements.map(announcement => `
+            <div class="mb-3 p-3 border-start border-primary ${announcement.is_important ? 'bg-light' : ''}">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <h6 class="mb-1">
+                            ${announcement.is_important ? '<i class="fas fa-exclamation-circle text-danger"></i> ' : ''}
+                            ${announcement.title}
+                        </h6>
+                        <p class="mb-1 text-muted">${announcement.content.substring(0, 100)}${announcement.content.length > 100 ? '...' : ''}</p>
+                        <small class="text-muted">发布者: ${announcement.author_name} | ${formatDate(announcement.created_at)}</small>
+                    </div>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
+    function getStatusColor(status) {
+        switch (status) {
+            case 'active': return 'success';
+            case 'completed': return 'primary';
+            case 'suspended': return 'warning';
+            default: return 'secondary';
+        }
+    }
+
+    function getStatusText(status) {
+        switch (status) {
+            case 'active': return '进行中';
+            case 'completed': return '已完成';
+            case 'suspended': return '暂停';
+            default: return status;
+        }
+    }
+
+    function getTaskStatusColor(status) {
+        switch (status) {
+            case 'todo': return 'secondary';
+            case 'in_progress': return 'warning';
+            case 'completed': return 'success';
+            case 'cancelled': return 'danger';
+            default: return 'secondary';
+        }
+    }
+
+    function getTaskStatusText(status) {
+        switch (status) {
+            case 'todo': return '待办';
+            case 'in_progress': return '进行中';
+            case 'completed': return '已完成';
+            case 'cancelled': return '已取消';
+            default: return status;
+        }
+    }
+
+    function getPriorityColor(priority) {
+        switch (priority) {
+            case 'high': return 'danger';
+            case 'medium': return 'warning';
+            case 'low': return 'info';
+            default: return 'secondary';
+        }
+    }
+
+    function getPriorityText(priority) {
+        switch (priority) {
+            case 'high': return '高';
+            case 'medium': return '中';
+            case 'low': return '低';
+            default: return priority;
+        }
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+    }
+</script>
+{% endblock %}

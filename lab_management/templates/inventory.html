@@ -1,0 +1,701 @@
+{% extends "base.html" %}
+
+{% block title %}库存管理{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-boxes"></i> 库存管理</h2>
+                <div>
+                    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addInventoryModal">
+                        <i class="fas fa-plus"></i> 添加物品
+                    </button>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#inventoryRecordModal">
+                        <i class="fas fa-exchange-alt"></i> 出入库记录
+                    </button>
+                    <button class="btn btn-warning" onclick="checkLowStock()">
+                        <i class="fas fa-exclamation-triangle"></i> 库存预警
+                    </button>
+                </div>
+            </div>
+
+            <!-- 筛选器 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="categoryFilter" class="form-label">类别筛选</label>
+                            <select class="form-select" id="categoryFilter" onchange="loadInventory()">
+                                <option value="">全部类别</option>
+                                <option value="reagent">试剂</option>
+                                <option value="consumable">耗材</option>
+                                <option value="equipment_part">设备配件</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">状态筛选</label>
+                            <select class="form-select" id="statusFilter" onchange="loadInventory()">
+                                <option value="">全部状态</option>
+                                <option value="active">正常</option>
+                                <option value="inactive">停用</option>
+                                <option value="expired">过期</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4">
+                            <label for="searchInput" class="form-label">搜索</label>
+                            <input type="text" class="form-control" id="searchInput" placeholder="名称、品牌、型号..." onkeyup="loadInventory()">
+                        </div>
+                        <div class="col-md-2">
+                            <label class="form-label">&nbsp;</label>
+                            <button class="btn btn-outline-secondary w-100" onclick="clearFilters()">
+                                <i class="fas fa-times"></i> 清除筛选
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 库存统计卡片 -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">总物品数</h6>
+                                    <h3 id="totalItems">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-boxes fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">库存预警</h6>
+                                    <h3 id="lowStockItems">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-danger text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">即将过期</h6>
+                                    <h3 id="expiringItems">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-calendar-times fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">库存价值</h6>
+                                    <h3 id="totalValue">¥0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-yen-sign fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 库存列表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>物品信息</th>
+                                    <th>类别</th>
+                                    <th>规格</th>
+                                    <th>库存</th>
+                                    <th>单价</th>
+                                    <th>存储位置</th>
+                                    <th>过期日期</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="inventoryTableBody">
+                                <!-- 动态加载库存数据 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分页 -->
+                    <nav>
+                        <ul class="pagination justify-content-center" id="inventoryPagination">
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 添加物品模态框 -->
+<div class="modal fade" id="addInventoryModal" tabindex="-1">
+    <div class="modal-dialog modal-xl">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">添加库存物品</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="addInventoryForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="name" class="form-label">物品名称 *</label>
+                                <input type="text" class="form-control" id="name" name="name" required>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="category" class="form-label">类别 *</label>
+                                <select class="form-select" id="category" name="category" required>
+                                    <option value="">请选择类别</option>
+                                    <option value="reagent">试剂</option>
+                                    <option value="consumable">耗材</option>
+                                    <option value="equipment_part">设备配件</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="brand" class="form-label">品牌</label>
+                                <input type="text" class="form-control" id="brand" name="brand">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="model" class="form-label">型号</label>
+                                <input type="text" class="form-control" id="model" name="model">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="specification" class="form-label">规格</label>
+                                <input type="text" class="form-control" id="specification" name="specification">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="unit" class="form-label">单位 *</label>
+                                <input type="text" class="form-control" id="unit" name="unit" required placeholder="如：瓶、包、个">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="current_stock" class="form-label">当前库存</label>
+                                <input type="number" step="0.01" class="form-control" id="current_stock" name="current_stock" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="min_stock" class="form-label">最小库存</label>
+                                <input type="number" step="0.01" class="form-control" id="min_stock" name="min_stock" value="0">
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="mb-3">
+                                <label for="unit_price" class="form-label">单价</label>
+                                <input type="number" step="0.01" class="form-control" id="unit_price" name="unit_price">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="supplier" class="form-label">供应商</label>
+                                <input type="text" class="form-control" id="supplier" name="supplier">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="storage_location" class="form-label">存储位置</label>
+                                <input type="text" class="form-control" id="storage_location" name="storage_location">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="expiry_date" class="form-label">过期日期</label>
+                                <input type="date" class="form-control" id="expiry_date" name="expiry_date">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="cas_number" class="form-label">CAS号</label>
+                                <input type="text" class="form-control" id="cas_number" name="cas_number">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="danger_level" class="form-label">危险等级</label>
+                                <select class="form-select" id="danger_level" name="danger_level">
+                                    <option value="">无危险</option>
+                                    <option value="low">低危险</option>
+                                    <option value="medium">中危险</option>
+                                    <option value="high">高危险</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="notes" class="form-label">备注</label>
+                        <textarea class="form-control" id="notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitInventory()">添加物品</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 出入库记录模态框 -->
+<div class="modal fade" id="inventoryRecordModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">出入库记录</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="inventoryRecordForm">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="record_inventory_id" class="form-label">选择物品 *</label>
+                                <select class="form-select" id="record_inventory_id" name="inventory_id" required>
+                                    <option value="">请选择物品</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="record_type" class="form-label">记录类型 *</label>
+                                <select class="form-select" id="record_type" name="record_type" required>
+                                    <option value="in">入库</option>
+                                    <option value="out">出库</option>
+                                    <option value="adjust">调整</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="record_quantity" class="form-label">数量 *</label>
+                                <input type="number" step="0.01" class="form-control" id="record_quantity" name="quantity" required>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="record_unit_price" class="form-label">单价</label>
+                                <input type="number" step="0.01" class="form-control" id="record_unit_price" name="unit_price">
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="mb-3">
+                                <label for="record_batch_number" class="form-label">批号</label>
+                                <input type="text" class="form-control" id="record_batch_number" name="batch_number">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="record_supplier" class="form-label">供应商</label>
+                                <input type="text" class="form-control" id="record_supplier" name="supplier">
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="record_expiry_date" class="form-label">过期日期</label>
+                                <input type="date" class="form-control" id="record_expiry_date" name="expiry_date">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="record_purpose" class="form-label">用途/目的</label>
+                        <input type="text" class="form-control" id="record_purpose" name="purpose">
+                    </div>
+                    
+                    <div class="mb-3">
+                        <label for="record_notes" class="form-label">备注</label>
+                        <textarea class="form-control" id="record_notes" name="notes" rows="3"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="submitInventoryRecord()">提交记录</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let inventory = [];
+let currentPage = 1;
+let totalPages = 1;
+
+$(document).ready(function() {
+    loadInventory();
+    loadInventoryItems(); // 为记录表单加载物品选项
+    updateStatistics();
+});
+
+function loadInventory() {
+    const categoryFilter = $('#categoryFilter').val();
+    const statusFilter = $('#statusFilter').val();
+    const searchInput = $('#searchInput').val();
+    
+    const params = new URLSearchParams();
+    params.append('page', currentPage);
+    params.append('per_page', 20);
+    
+    if (categoryFilter) params.append('category', categoryFilter);
+    if (statusFilter) params.append('status', statusFilter);
+    if (searchInput) params.append('search', searchInput);
+    
+    $.get(`/api/inventory?${params.toString()}`, function(data) {
+        inventory = data.inventory;
+        totalPages = data.pages;
+        renderInventoryTable();
+        renderPagination('inventoryPagination', data.current_page, data.pages, loadInventory);
+        updateStatistics();
+    });
+}
+
+function renderInventoryTable() {
+    const tbody = $('#inventoryTableBody');
+    tbody.empty();
+    
+    inventory.forEach(item => {
+        const stockStatus = getStockStatus(item);
+        const expiryStatus = getExpiryStatus(item);
+        const categoryBadge = getCategoryBadge(item.category);
+        
+        const row = `
+            <tr>
+                <td>
+                    <div>
+                        <div class="fw-bold">${item.name}</div>
+                        <small class="text-muted">${item.brand || ''} ${item.model || ''}</small>
+                    </div>
+                </td>
+                <td>${categoryBadge}</td>
+                <td>${item.specification || '-'}</td>
+                <td>
+                    <div>${item.current_stock} ${item.unit}</div>
+                    ${stockStatus}
+                </td>
+                <td>${item.unit_price ? '¥' + item.unit_price : '-'}</td>
+                <td>${item.storage_location || '-'}</td>
+                <td>
+                    <div>${item.expiry_date || '-'}</div>
+                    ${expiryStatus}
+                </td>
+                <td>${getStatusBadge(item.status)}</td>
+                <td>
+                    <div class="btn-group" role="group">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editInventory(${item.id})" title="编辑">
+                            <i class="fas fa-edit"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-info" onclick="viewInventoryRecords(${item.id})" title="记录">
+                            <i class="fas fa-history"></i>
+                        </button>
+                        <button class="btn btn-sm btn-outline-danger" onclick="deleteInventory(${item.id})" title="删除">
+                            <i class="fas fa-trash"></i>
+                        </button>
+                    </div>
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+}
+
+function getStockStatus(item) {
+    if (item.current_stock <= item.min_stock) {
+        return '<small class="badge bg-danger">库存不足</small>';
+    }
+    return '';
+}
+
+function getExpiryStatus(item) {
+    if (!item.expiry_date) return '';
+    
+    const today = new Date();
+    const expiryDate = new Date(item.expiry_date);
+    const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+    
+    if (daysUntilExpiry < 0) {
+        return '<small class="badge bg-danger">已过期</small>';
+    } else if (daysUntilExpiry <= 30) {
+        return '<small class="badge bg-warning">即将过期</small>';
+    }
+    return '';
+}
+
+function getCategoryBadge(category) {
+    const badges = {
+        'reagent': '<span class="badge bg-primary">试剂</span>',
+        'consumable': '<span class="badge bg-success">耗材</span>',
+        'equipment_part': '<span class="badge bg-info">设备配件</span>'
+    };
+    return badges[category] || '<span class="badge bg-secondary">其他</span>';
+}
+
+function getStatusBadge(status) {
+    const badges = {
+        'active': '<span class="badge bg-success">正常</span>',
+        'inactive': '<span class="badge bg-secondary">停用</span>',
+        'expired': '<span class="badge bg-danger">过期</span>'
+    };
+    return badges[status] || '<span class="badge bg-secondary">未知</span>';
+}
+
+function loadInventoryItems() {
+    $.get('/api/inventory', function(data) {
+        const select = $('#record_inventory_id');
+        select.html('<option value="">请选择物品</option>');
+        
+        data.inventory.forEach(item => {
+            select.append(`<option value="${item.id}">${item.name} (${item.current_stock} ${item.unit})</option>`);
+        });
+    });
+}
+
+function submitInventory() {
+    const formData = new FormData(document.getElementById('addInventoryForm'));
+    const inventoryData = Object.fromEntries(formData.entries());
+    
+    // 移除空值
+    Object.keys(inventoryData).forEach(key => {
+        if (inventoryData[key] === '') {
+            delete inventoryData[key];
+        }
+    });
+    
+    $.ajax({
+        url: '/api/inventory',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(inventoryData),
+        success: function(response) {
+            $('#addInventoryModal').modal('hide');
+            $('#addInventoryForm')[0].reset();
+            loadInventory();
+            loadInventoryItems();
+            showAlert('库存物品添加成功！', 'success');
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON?.error || '添加失败';
+            showAlert(error, 'danger');
+        }
+    });
+}
+
+function submitInventoryRecord() {
+    const formData = new FormData(document.getElementById('inventoryRecordForm'));
+    const recordData = Object.fromEntries(formData.entries());
+    
+    // 移除空值
+    Object.keys(recordData).forEach(key => {
+        if (recordData[key] === '') {
+            delete recordData[key];
+        }
+    });
+    
+    $.ajax({
+        url: '/api/inventory/records',
+        method: 'POST',
+        contentType: 'application/json',
+        data: JSON.stringify(recordData),
+        success: function(response) {
+            $('#inventoryRecordModal').modal('hide');
+            $('#inventoryRecordForm')[0].reset();
+            loadInventory();
+            loadInventoryItems();
+            showAlert('出入库记录提交成功！', 'success');
+        },
+        error: function(xhr) {
+            const error = xhr.responseJSON?.error || '提交失败';
+            showAlert(error, 'danger');
+        }
+    });
+}
+
+function updateStatistics() {
+    // 更新统计数据
+    $('#totalItems').text(inventory.length);
+    
+    let lowStockCount = 0;
+    let expiringCount = 0;
+    let totalValue = 0;
+    
+    inventory.forEach(item => {
+        if (item.current_stock <= item.min_stock) {
+            lowStockCount++;
+        }
+        
+        if (item.expiry_date) {
+            const today = new Date();
+            const expiryDate = new Date(item.expiry_date);
+            const daysUntilExpiry = Math.ceil((expiryDate - today) / (1000 * 60 * 60 * 24));
+            if (daysUntilExpiry <= 30 && daysUntilExpiry >= 0) {
+                expiringCount++;
+            }
+        }
+        
+        if (item.unit_price && item.current_stock) {
+            totalValue += item.unit_price * item.current_stock;
+        }
+    });
+    
+    $('#lowStockItems').text(lowStockCount);
+    $('#expiringItems').text(expiringCount);
+    $('#totalValue').text('¥' + totalValue.toFixed(2));
+}
+
+function clearFilters() {
+    $('#categoryFilter').val('');
+    $('#statusFilter').val('');
+    $('#searchInput').val('');
+    currentPage = 1;
+    loadInventory();
+}
+
+function checkLowStock() {
+    const lowStockItems = inventory.filter(item => item.current_stock <= item.min_stock);
+    if (lowStockItems.length === 0) {
+        showAlert('目前没有库存不足的物品', 'info');
+        return;
+    }
+    
+    let alertMessage = '以下物品库存不足：\n';
+    lowStockItems.forEach(item => {
+        alertMessage += `• ${item.name}: ${item.current_stock} ${item.unit} (最小库存: ${item.min_stock} ${item.unit})\n`;
+    });
+    
+    alert(alertMessage);
+}
+
+function renderPagination(containerId, currentPage, totalPages, callback) {
+    const container = $(`#${containerId}`);
+    container.empty();
+    
+    if (totalPages <= 1) return;
+    
+    // 上一页
+    container.append(`
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1}, ${callback.name})">上一页</a>
+        </li>
+    `);
+    
+    // 页码
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage || i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            container.append(`
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i}, ${callback.name})">${i}</a>
+                </li>
+            `);
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+    }
+    
+    // 下一页
+    container.append(`
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1}, ${callback.name})">下一页</a>
+        </li>
+    `);
+}
+
+function changePage(page, callbackName) {
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    if (callbackName === 'loadInventory') {
+        loadInventory();
+    }
+}
+
+function showAlert(message, type) {
+    const alertDiv = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertDiv);
+    setTimeout(() => $('.alert').fadeOut(), 3000);
+}
+</script>
+
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.btn-group .btn {
+    border-radius: 0.25rem;
+    margin-right: 2px;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.badge {
+    font-size: 0.75em;
+}
+</style>
+{% endblock %}

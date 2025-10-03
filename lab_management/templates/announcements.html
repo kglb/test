@@ -1,0 +1,235 @@
+{% extends "base.html" %}
+
+{% block title %}公告通知 - 课题组管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-bullhorn"></i> 公告通知</h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#announcementModal" onclick="openAnnouncementModal()">
+                <i class="fas fa-plus"></i> 发布公告
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 公告列表 -->
+<div id="announcementsList">
+    <div class="text-center">
+        <div class="spinner-border" role="status">
+            <span class="visually-hidden">加载中...</span>
+        </div>
+    </div>
+</div>
+
+<!-- 公告编辑模态框 -->
+<div class="modal fade" id="announcementModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="announcementModalTitle">发布公告</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="announcementForm">
+                    <input type="hidden" id="announcementId">
+                    <div class="mb-3">
+                        <label for="announcementTitle" class="form-label">公告标题 *</label>
+                        <input type="text" class="form-control" id="announcementTitle" required>
+                    </div>
+                    <div class="mb-3">
+                        <label for="announcementContent" class="form-label">公告内容 *</label>
+                        <textarea class="form-control" id="announcementContent" rows="8" required></textarea>
+                    </div>
+                    <div class="mb-3">
+                        <div class="form-check">
+                            <input class="form-check-input" type="checkbox" id="announcementImportant">
+                            <label class="form-check-label" for="announcementImportant">
+                                <i class="fas fa-exclamation-circle text-danger"></i> 重要公告
+                            </label>
+                        </div>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveAnnouncement()">发布</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentUser = null;
+    let announcements = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
+        loadAnnouncements();
+    });
+
+    async function checkAuth() {
+        try {
+            const response = await fetch('/api/current_user');
+            if (response.ok) {
+                currentUser = await response.json();
+                document.getElementById('currentUserName').textContent = currentUser.real_name;
+            } else {
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            window.location.href = '/login';
+        }
+    }
+
+    async function loadAnnouncements() {
+        try {
+            const response = await fetch('/api/announcements');
+            if (response.ok) {
+                announcements = await response.json();
+                displayAnnouncements();
+            }
+        } catch (error) {
+            showToast('加载公告失败', 'error');
+        }
+    }
+
+    function displayAnnouncements() {
+        const container = document.getElementById('announcementsList');
+        
+        if (announcements.length === 0) {
+            container.innerHTML = `
+                <div class="card">
+                    <div class="card-body text-center">
+                        <p class="text-muted">暂无公告</p>
+                    </div>
+                </div>
+            `;
+            return;
+        }
+
+        const html = announcements.map(announcement => `
+            <div class="card mb-3 ${announcement.is_important ? 'border-danger' : ''}">
+                <div class="card-header d-flex justify-content-between align-items-center ${announcement.is_important ? 'bg-danger bg-opacity-10' : ''}">
+                    <div>
+                        <h5 class="mb-0">
+                            ${announcement.is_important ? '<i class="fas fa-exclamation-circle text-danger"></i> ' : ''}
+                            ${announcement.title}
+                        </h5>
+                        <small class="text-muted">
+                            发布者: ${announcement.author_name} | 发布时间: ${formatDate(announcement.created_at)}
+                            ${announcement.updated_at !== announcement.created_at ? ` | 更新时间: ${formatDate(announcement.updated_at)}` : ''}
+                        </small>
+                    </div>
+                    <div class="btn-group btn-group-sm">
+                        ${currentUser.role === 'admin' || currentUser.id === announcement.author_id ? `
+                            <button class="btn btn-outline-primary" onclick="editAnnouncement(${announcement.id})" title="编辑">
+                                <i class="fas fa-edit"></i>
+                            </button>
+                            <button class="btn btn-outline-danger" onclick="deleteAnnouncement(${announcement.id})" title="删除">
+                                <i class="fas fa-trash"></i>
+                            </button>
+                        ` : ''}
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="announcement-content">${formatContent(announcement.content)}</div>
+                </div>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
+    function formatContent(content) {
+        // 简单的格式化：换行转换为<br>
+        return content.replace(/\n/g, '<br>');
+    }
+
+    function openAnnouncementModal(announcementId = null) {
+        const modal = document.getElementById('announcementModal');
+        const title = document.getElementById('announcementModalTitle');
+        const form = document.getElementById('announcementForm');
+        
+        form.reset();
+        document.getElementById('announcementId').value = announcementId || '';
+        
+        if (announcementId) {
+            title.textContent = '编辑公告';
+            const announcement = announcements.find(a => a.id === announcementId);
+            if (announcement) {
+                document.getElementById('announcementTitle').value = announcement.title;
+                document.getElementById('announcementContent').value = announcement.content;
+                document.getElementById('announcementImportant').checked = announcement.is_important;
+            }
+        } else {
+            title.textContent = '发布公告';
+        }
+    }
+
+    function editAnnouncement(announcementId) {
+        openAnnouncementModal(announcementId);
+        new bootstrap.Modal(document.getElementById('announcementModal')).show();
+    }
+
+    async function saveAnnouncement() {
+        const announcementId = document.getElementById('announcementId').value;
+        const data = {
+            title: document.getElementById('announcementTitle').value,
+            content: document.getElementById('announcementContent').value,
+            is_important: document.getElementById('announcementImportant').checked
+        };
+
+        try {
+            const url = announcementId ? `/api/announcements/${announcementId}` : '/api/announcements';
+            const method = announcementId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showToast(`公告${announcementId ? '更新' : '发布'}成功`, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('announcementModal')).hide();
+                loadAnnouncements();
+            } else {
+                const error = await response.json();
+                showToast(error.error || `公告${announcementId ? '更新' : '发布'}失败`, 'error');
+            }
+        } catch (error) {
+            showToast(`公告${announcementId ? '更新' : '发布'}失败`, 'error');
+        }
+    }
+
+    async function deleteAnnouncement(announcementId) {
+        if (!confirm('确定要删除这个公告吗？')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/announcements/${announcementId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showToast('公告删除成功', 'success');
+                loadAnnouncements();
+            } else {
+                showToast('公告删除失败', 'error');
+            }
+        } catch (error) {
+            showToast('公告删除失败', 'error');
+        }
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+    }
+</script>
+{% endblock %}

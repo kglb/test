@@ -1,0 +1,469 @@
+{% extends "base.html" %}
+
+{% block title %}任务管理 - 课题组管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-tasks"></i> 任务管理</h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#taskModal" onclick="openTaskModal()">
+                <i class="fas fa-plus"></i> 新建任务
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 过滤选项 -->
+<div class="card mb-4">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-3">
+                <label for="filterProject" class="form-label">项目</label>
+                <select class="form-select" id="filterProject" onchange="filterTasks()">
+                    <option value="">所有项目</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filterStatus" class="form-label">状态</label>
+                <select class="form-select" id="filterStatus" onchange="filterTasks()">
+                    <option value="">所有状态</option>
+                    <option value="todo">待办</option>
+                    <option value="in_progress">进行中</option>
+                    <option value="completed">已完成</option>
+                    <option value="cancelled">已取消</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filterAssignee" class="form-label">负责人</label>
+                <select class="form-select" id="filterAssignee" onchange="filterTasks()">
+                    <option value="">所有人</option>
+                </select>
+            </div>
+            <div class="col-md-3">
+                <label for="filterPriority" class="form-label">优先级</label>
+                <select class="form-select" id="filterPriority" onchange="filterTasks()">
+                    <option value="">所有优先级</option>
+                    <option value="low">低</option>
+                    <option value="medium">中</option>
+                    <option value="high">高</option>
+                </select>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 任务列表 -->
+<div class="card">
+    <div class="card-body">
+        <div id="tasksList">
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 任务编辑模态框 -->
+<div class="modal fade" id="taskModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="taskModalTitle">新建任务</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="taskForm">
+                    <input type="hidden" id="taskId">
+                    <div class="row">
+                        <div class="col-md-8 mb-3">
+                            <label for="taskTitle" class="form-label">任务标题 *</label>
+                            <input type="text" class="form-control" id="taskTitle" required>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="taskProject" class="form-label">所属项目 *</label>
+                            <select class="form-select" id="taskProject" required>
+                                <option value="">选择项目</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-4 mb-3">
+                            <label for="taskAssignee" class="form-label">负责人</label>
+                            <select class="form-select" id="taskAssignee">
+                                <option value="">选择负责人</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="taskPriority" class="form-label">优先级</label>
+                            <select class="form-select" id="taskPriority">
+                                <option value="low">低</option>
+                                <option value="medium" selected>中</option>
+                                <option value="high">高</option>
+                            </select>
+                        </div>
+                        <div class="col-md-4 mb-3">
+                            <label for="taskStatus" class="form-label">状态</label>
+                            <select class="form-select" id="taskStatus">
+                                <option value="todo" selected>待办</option>
+                                <option value="in_progress">进行中</option>
+                                <option value="completed">已完成</option>
+                                <option value="cancelled">已取消</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskDueDate" class="form-label">截止日期</label>
+                        <input type="datetime-local" class="form-control" id="taskDueDate">
+                    </div>
+                    <div class="mb-3">
+                        <label for="taskDescription" class="form-label">任务描述</label>
+                        <textarea class="form-control" id="taskDescription" rows="4"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveTask()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentUser = null;
+    let tasks = [];
+    let allTasks = [];
+    let projects = [];
+    let users = [];
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
+        loadData();
+    });
+
+    async function checkAuth() {
+        try {
+            const response = await fetch('/api/current_user');
+            if (response.ok) {
+                currentUser = await response.json();
+                document.getElementById('currentUserName').textContent = currentUser.real_name;
+            } else {
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            window.location.href = '/login';
+        }
+    }
+
+    async function loadData() {
+        await Promise.all([loadTasks(), loadProjects(), loadUsers()]);
+        populateFilters();
+    }
+
+    async function loadTasks() {
+        try {
+            const response = await fetch('/api/tasks');
+            if (response.ok) {
+                allTasks = await response.json();
+                tasks = [...allTasks];
+                displayTasks();
+            }
+        } catch (error) {
+            showToast('加载任务失败', 'error');
+        }
+    }
+
+    async function loadProjects() {
+        try {
+            const response = await fetch('/api/projects');
+            if (response.ok) {
+                projects = await response.json();
+                populateProjectSelects();
+            }
+        } catch (error) {
+            showToast('加载项目失败', 'error');
+        }
+    }
+
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/users');
+            if (response.ok) {
+                users = await response.json();
+                populateUserSelects();
+            }
+        } catch (error) {
+            showToast('加载用户失败', 'error');
+        }
+    }
+
+    function populateProjectSelects() {
+        const taskProjectSelect = document.getElementById('taskProject');
+        const filterProjectSelect = document.getElementById('filterProject');
+        
+        taskProjectSelect.innerHTML = '<option value="">选择项目</option>';
+        filterProjectSelect.innerHTML = '<option value="">所有项目</option>';
+        
+        projects.forEach(project => {
+            taskProjectSelect.innerHTML += `<option value="${project.id}">${project.name}</option>`;
+            filterProjectSelect.innerHTML += `<option value="${project.id}">${project.name}</option>`;
+        });
+    }
+
+    function populateUserSelects() {
+        const taskAssigneeSelect = document.getElementById('taskAssignee');
+        const filterAssigneeSelect = document.getElementById('filterAssignee');
+        
+        taskAssigneeSelect.innerHTML = '<option value="">选择负责人</option>';
+        filterAssigneeSelect.innerHTML = '<option value="">所有人</option>';
+        
+        users.forEach(user => {
+            taskAssigneeSelect.innerHTML += `<option value="${user.id}">${user.real_name} (${user.username})</option>`;
+            filterAssigneeSelect.innerHTML += `<option value="${user.id}">${user.real_name}</option>`;
+        });
+    }
+
+    function populateFilters() {
+        // 过滤器已在上面的函数中填充
+    }
+
+    function displayTasks() {
+        const container = document.getElementById('tasksList');
+        
+        if (tasks.length === 0) {
+            container.innerHTML = '<p class="text-muted">暂无任务</p>';
+            return;
+        }
+
+        const html = `
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>任务标题</th>
+                            <th>项目</th>
+                            <th>负责人</th>
+                            <th>状态</th>
+                            <th>优先级</th>
+                            <th>截止日期</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${tasks.map(task => `
+                            <tr>
+                                <td>
+                                    <strong>${task.title}</strong>
+                                    ${task.description ? `<br><small class="text-muted">${task.description.substring(0, 50)}${task.description.length > 50 ? '...' : ''}</small>` : ''}
+                                </td>
+                                <td>${task.project_name || '未分配'}</td>
+                                <td>${task.assignee_name || '未分配'}</td>
+                                <td><span class="badge bg-${getTaskStatusColor(task.status)}">${getTaskStatusText(task.status)}</span></td>
+                                <td><span class="badge bg-${getPriorityColor(task.priority)}">${getPriorityText(task.priority)}</span></td>
+                                <td>${task.due_date ? formatDate(task.due_date) : '无'}</td>
+                                <td>${formatDate(task.created_at)}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editTask(${task.id})" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-success" onclick="toggleTaskStatus(${task.id})" title="切换状态">
+                                            <i class="fas ${task.status === 'completed' ? 'fa-undo' : 'fa-check'}"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="deleteTask(${task.id})" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    function filterTasks() {
+        const projectFilter = document.getElementById('filterProject').value;
+        const statusFilter = document.getElementById('filterStatus').value;
+        const assigneeFilter = document.getElementById('filterAssignee').value;
+        const priorityFilter = document.getElementById('filterPriority').value;
+
+        tasks = allTasks.filter(task => {
+            return (!projectFilter || task.project_id == projectFilter) &&
+                   (!statusFilter || task.status === statusFilter) &&
+                   (!assigneeFilter || task.assignee_id == assigneeFilter) &&
+                   (!priorityFilter || task.priority === priorityFilter);
+        });
+
+        displayTasks();
+    }
+
+    function openTaskModal(taskId = null) {
+        const modal = document.getElementById('taskModal');
+        const title = document.getElementById('taskModalTitle');
+        const form = document.getElementById('taskForm');
+        
+        form.reset();
+        document.getElementById('taskId').value = taskId || '';
+        
+        if (taskId) {
+            title.textContent = '编辑任务';
+            const task = tasks.find(t => t.id === taskId);
+            if (task) {
+                document.getElementById('taskTitle').value = task.title;
+                document.getElementById('taskProject').value = task.project_id;
+                document.getElementById('taskAssignee').value = task.assignee_id || '';
+                document.getElementById('taskPriority').value = task.priority;
+                document.getElementById('taskStatus').value = task.status;
+                document.getElementById('taskDescription').value = task.description || '';
+                
+                if (task.due_date) {
+                    const date = new Date(task.due_date);
+                    document.getElementById('taskDueDate').value = date.toISOString().slice(0, 16);
+                }
+            }
+        } else {
+            title.textContent = '新建任务';
+            document.getElementById('taskAssignee').value = currentUser.id;
+        }
+    }
+
+    function editTask(taskId) {
+        openTaskModal(taskId);
+        new bootstrap.Modal(document.getElementById('taskModal')).show();
+    }
+
+    async function saveTask() {
+        const taskId = document.getElementById('taskId').value;
+        const data = {
+            title: document.getElementById('taskTitle').value,
+            project_id: parseInt(document.getElementById('taskProject').value),
+            assignee_id: document.getElementById('taskAssignee').value ? parseInt(document.getElementById('taskAssignee').value) : null,
+            priority: document.getElementById('taskPriority').value,
+            status: document.getElementById('taskStatus').value,
+            description: document.getElementById('taskDescription').value,
+            due_date: document.getElementById('taskDueDate').value || null
+        };
+
+        try {
+            const url = taskId ? `/api/tasks/${taskId}` : '/api/tasks';
+            const method = taskId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showToast(`任务${taskId ? '更新' : '创建'}成功`, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('taskModal')).hide();
+                loadTasks();
+            } else {
+                const error = await response.json();
+                showToast(error.error || `任务${taskId ? '更新' : '创建'}失败`, 'error');
+            }
+        } catch (error) {
+            showToast(`任务${taskId ? '更新' : '创建'}失败`, 'error');
+        }
+    }
+
+    async function toggleTaskStatus(taskId) {
+        const task = tasks.find(t => t.id === taskId);
+        if (!task) return;
+
+        const newStatus = task.status === 'completed' ? 'todo' : 'completed';
+        
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: newStatus })
+            });
+
+            if (response.ok) {
+                showToast(`任务状态已更新为${newStatus === 'completed' ? '已完成' : '待办'}`, 'success');
+                loadTasks();
+            } else {
+                showToast('任务状态更新失败', 'error');
+            }
+        } catch (error) {
+            showToast('任务状态更新失败', 'error');
+        }
+    }
+
+    async function deleteTask(taskId) {
+        if (!confirm('确定要删除这个任务吗？')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/tasks/${taskId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showToast('任务删除成功', 'success');
+                loadTasks();
+            } else {
+                showToast('任务删除失败', 'error');
+            }
+        } catch (error) {
+            showToast('任务删除失败', 'error');
+        }
+    }
+
+    // 工具函数
+    function getTaskStatusColor(status) {
+        switch (status) {
+            case 'todo': return 'secondary';
+            case 'in_progress': return 'warning';
+            case 'completed': return 'success';
+            case 'cancelled': return 'danger';
+            default: return 'secondary';
+        }
+    }
+
+    function getTaskStatusText(status) {
+        switch (status) {
+            case 'todo': return '待办';
+            case 'in_progress': return '进行中';
+            case 'completed': return '已完成';
+            case 'cancelled': return '已取消';
+            default: return status;
+        }
+    }
+
+    function getPriorityColor(priority) {
+        switch (priority) {
+            case 'high': return 'danger';
+            case 'medium': return 'warning';
+            case 'low': return 'info';
+            default: return 'secondary';
+        }
+    }
+
+    function getPriorityText(priority) {
+        switch (priority) {
+            case 'high': return '高';
+            case 'medium': return '中';
+            case 'low': return '低';
+            default: return priority;
+        }
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN') + ' ' + date.toLocaleTimeString('zh-CN', {hour: '2-digit', minute: '2-digit'});
+    }
+</script>
+{% endblock %}

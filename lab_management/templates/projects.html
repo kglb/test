@@ -1,0 +1,462 @@
+{% extends "base.html" %}
+
+{% block title %}项目管理 - 课题组管理系统{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h1><i class="fas fa-project-diagram"></i> 项目管理</h1>
+            <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#projectModal" onclick="openProjectModal()">
+                <i class="fas fa-plus"></i> 新建项目
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- 项目列表 -->
+<div class="card">
+    <div class="card-body">
+        <div id="projectsList">
+            <div class="text-center">
+                <div class="spinner-border" role="status">
+                    <span class="visually-hidden">加载中...</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 项目编辑模态框 -->
+<div class="modal fade" id="projectModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="projectModalTitle">新建项目</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <form id="projectForm">
+                    <input type="hidden" id="projectId">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="projectName" class="form-label">项目名称 *</label>
+                            <input type="text" class="form-control" id="projectName" required>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="projectLeader" class="form-label">项目负责人 *</label>
+                            <select class="form-select" id="projectLeader" required>
+                                <option value="">选择负责人</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="projectPriority" class="form-label">优先级</label>
+                            <select class="form-select" id="projectPriority">
+                                <option value="low">低</option>
+                                <option value="medium" selected>中</option>
+                                <option value="high">高</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="projectStatus" class="form-label">状态</label>
+                            <select class="form-select" id="projectStatus">
+                                <option value="active" selected>进行中</option>
+                                <option value="completed">已完成</option>
+                                <option value="suspended">暂停</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="projectEndDate" class="form-label">预计完成日期</label>
+                            <input type="datetime-local" class="form-control" id="projectEndDate">
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="projectProgress" class="form-label">进度 (%)</label>
+                            <input type="number" class="form-control" id="projectProgress" min="0" max="100" value="0">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="projectDescription" class="form-label">项目描述</label>
+                        <textarea class="form-control" id="projectDescription" rows="4"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="saveProject()">保存</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 项目成员模态框 -->
+<div class="modal fade" id="membersModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">项目成员</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="mb-3">
+                    <div class="row">
+                        <div class="col-8">
+                            <select class="form-select" id="newMemberSelect">
+                                <option value="">选择要添加的成员</option>
+                            </select>
+                        </div>
+                        <div class="col-4">
+                            <button class="btn btn-primary w-100" onclick="addProjectMember()">
+                                <i class="fas fa-plus"></i> 添加
+                            </button>
+                        </div>
+                    </div>
+                </div>
+                <div id="membersList">
+                    <div class="text-center">
+                        <div class="spinner-border spinner-border-sm" role="status">
+                            <span class="visually-hidden">加载中...</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    let currentUser = null;
+    let projects = [];
+    let users = [];
+    let currentProjectId = null;
+
+    document.addEventListener('DOMContentLoaded', function() {
+        checkAuth();
+        loadData();
+    });
+
+    async function checkAuth() {
+        try {
+            const response = await fetch('/api/current_user');
+            if (response.ok) {
+                currentUser = await response.json();
+                document.getElementById('currentUserName').textContent = currentUser.real_name;
+            } else {
+                window.location.href = '/login';
+            }
+        } catch (error) {
+            window.location.href = '/login';
+        }
+    }
+
+    async function loadData() {
+        await Promise.all([loadProjects(), loadUsers()]);
+    }
+
+    async function loadProjects() {
+        try {
+            const response = await fetch('/api/projects');
+            if (response.ok) {
+                projects = await response.json();
+                displayProjects();
+            }
+        } catch (error) {
+            showToast('加载项目失败', 'error');
+        }
+    }
+
+    async function loadUsers() {
+        try {
+            const response = await fetch('/api/users');
+            if (response.ok) {
+                users = await response.json();
+                populateUserSelects();
+            }
+        } catch (error) {
+            showToast('加载用户失败', 'error');
+        }
+    }
+
+    function populateUserSelects() {
+        const leaderSelect = document.getElementById('projectLeader');
+        const memberSelect = document.getElementById('newMemberSelect');
+        
+        leaderSelect.innerHTML = '<option value="">选择负责人</option>';
+        memberSelect.innerHTML = '<option value="">选择要添加的成员</option>';
+        
+        users.forEach(user => {
+            leaderSelect.innerHTML += `<option value="${user.id}">${user.real_name} (${user.username})</option>`;
+            memberSelect.innerHTML += `<option value="${user.id}">${user.real_name} (${user.username})</option>`;
+        });
+    }
+
+    function displayProjects() {
+        const container = document.getElementById('projectsList');
+        
+        if (projects.length === 0) {
+            container.innerHTML = '<p class="text-muted">暂无项目</p>';
+            return;
+        }
+
+        const html = `
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead>
+                        <tr>
+                            <th>项目名称</th>
+                            <th>负责人</th>
+                            <th>状态</th>
+                            <th>优先级</th>
+                            <th>进度</th>
+                            <th>成员数</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        ${projects.map(project => `
+                            <tr>
+                                <td>
+                                    <strong>${project.name}</strong>
+                                    ${project.description ? `<br><small class="text-muted">${project.description.substring(0, 50)}${project.description.length > 50 ? '...' : ''}</small>` : ''}
+                                </td>
+                                <td>${project.leader_name}</td>
+                                <td><span class="badge bg-${getStatusColor(project.status)}">${getStatusText(project.status)}</span></td>
+                                <td><span class="badge bg-${getPriorityColor(project.priority)}">${getPriorityText(project.priority)}</span></td>
+                                <td>
+                                    <div class="progress" style="height: 20px;">
+                                        <div class="progress-bar" role="progressbar" style="width: ${project.progress}%">${project.progress}%</div>
+                                    </div>
+                                </td>
+                                <td>${project.member_count}</td>
+                                <td>${formatDate(project.created_at)}</td>
+                                <td>
+                                    <div class="btn-group btn-group-sm">
+                                        <button class="btn btn-outline-primary" onclick="editProject(${project.id})" title="编辑">
+                                            <i class="fas fa-edit"></i>
+                                        </button>
+                                        <button class="btn btn-outline-info" onclick="viewMembers(${project.id})" title="成员">
+                                            <i class="fas fa-users"></i>
+                                        </button>
+                                        <button class="btn btn-outline-danger" onclick="deleteProject(${project.id})" title="删除">
+                                            <i class="fas fa-trash"></i>
+                                        </button>
+                                    </div>
+                                </td>
+                            </tr>
+                        `).join('')}
+                    </tbody>
+                </table>
+            </div>
+        `;
+
+        container.innerHTML = html;
+    }
+
+    function openProjectModal(projectId = null) {
+        const modal = document.getElementById('projectModal');
+        const title = document.getElementById('projectModalTitle');
+        const form = document.getElementById('projectForm');
+        
+        form.reset();
+        document.getElementById('projectId').value = projectId || '';
+        
+        if (projectId) {
+            title.textContent = '编辑项目';
+            const project = projects.find(p => p.id === projectId);
+            if (project) {
+                document.getElementById('projectName').value = project.name;
+                document.getElementById('projectLeader').value = project.leader_id;
+                document.getElementById('projectPriority').value = project.priority;
+                document.getElementById('projectStatus').value = project.status;
+                document.getElementById('projectProgress').value = project.progress;
+                document.getElementById('projectDescription').value = project.description || '';
+                
+                if (project.end_date) {
+                    const date = new Date(project.end_date);
+                    document.getElementById('projectEndDate').value = date.toISOString().slice(0, 16);
+                }
+            }
+        } else {
+            title.textContent = '新建项目';
+            document.getElementById('projectLeader').value = currentUser.id;
+        }
+    }
+
+    function editProject(projectId) {
+        openProjectModal(projectId);
+        new bootstrap.Modal(document.getElementById('projectModal')).show();
+    }
+
+    async function saveProject() {
+        const projectId = document.getElementById('projectId').value;
+        const data = {
+            name: document.getElementById('projectName').value,
+            leader_id: parseInt(document.getElementById('projectLeader').value),
+            priority: document.getElementById('projectPriority').value,
+            status: document.getElementById('projectStatus').value,
+            progress: parseInt(document.getElementById('projectProgress').value),
+            description: document.getElementById('projectDescription').value,
+            end_date: document.getElementById('projectEndDate').value || null
+        };
+
+        try {
+            const url = projectId ? `/api/projects/${projectId}` : '/api/projects';
+            const method = projectId ? 'PUT' : 'POST';
+            
+            const response = await fetch(url, {
+                method: method,
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(data)
+            });
+
+            if (response.ok) {
+                showToast(`项目${projectId ? '更新' : '创建'}成功`, 'success');
+                bootstrap.Modal.getInstance(document.getElementById('projectModal')).hide();
+                loadProjects();
+            } else {
+                const error = await response.json();
+                showToast(error.error || `项目${projectId ? '更新' : '创建'}失败`, 'error');
+            }
+        } catch (error) {
+            showToast(`项目${projectId ? '更新' : '创建'}失败`, 'error');
+        }
+    }
+
+    async function deleteProject(projectId) {
+        if (!confirm('确定要删除这个项目吗？此操作将同时删除相关的任务和成员记录。')) {
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/projects/${projectId}`, {
+                method: 'DELETE'
+            });
+
+            if (response.ok) {
+                showToast('项目删除成功', 'success');
+                loadProjects();
+            } else {
+                showToast('项目删除失败', 'error');
+            }
+        } catch (error) {
+            showToast('项目删除失败', 'error');
+        }
+    }
+
+    async function viewMembers(projectId) {
+        currentProjectId = projectId;
+        const modal = new bootstrap.Modal(document.getElementById('membersModal'));
+        modal.show();
+        loadProjectMembers();
+    }
+
+    async function loadProjectMembers() {
+        try {
+            const response = await fetch(`/api/projects/${currentProjectId}/members`);
+            if (response.ok) {
+                const members = await response.json();
+                displayProjectMembers(members);
+            }
+        } catch (error) {
+            showToast('加载成员失败', 'error');
+        }
+    }
+
+    function displayProjectMembers(members) {
+        const container = document.getElementById('membersList');
+        
+        if (members.length === 0) {
+            container.innerHTML = '<p class="text-muted">暂无成员</p>';
+            return;
+        }
+
+        const html = members.map(member => `
+            <div class="d-flex justify-content-between align-items-center mb-2 p-2 border rounded">
+                <div>
+                    <strong>${member.user_name}</strong>
+                    <span class="badge bg-secondary ms-2">${member.role}</span>
+                </div>
+                <small class="text-muted">${formatDate(member.joined_at)}</small>
+            </div>
+        `).join('');
+
+        container.innerHTML = html;
+    }
+
+    async function addProjectMember() {
+        const userId = document.getElementById('newMemberSelect').value;
+        if (!userId) {
+            showToast('请选择要添加的成员', 'warning');
+            return;
+        }
+
+        try {
+            const response = await fetch(`/api/projects/${currentProjectId}/members`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ user_id: parseInt(userId) })
+            });
+
+            if (response.ok) {
+                showToast('成员添加成功', 'success');
+                document.getElementById('newMemberSelect').value = '';
+                loadProjectMembers();
+                loadProjects(); // 刷新项目列表以更新成员数量
+            } else {
+                const error = await response.json();
+                showToast(error.error || '成员添加失败', 'error');
+            }
+        } catch (error) {
+            showToast('成员添加失败', 'error');
+        }
+    }
+
+    // 工具函数
+    function getStatusColor(status) {
+        switch (status) {
+            case 'active': return 'success';
+            case 'completed': return 'primary';
+            case 'suspended': return 'warning';
+            default: return 'secondary';
+        }
+    }
+
+    function getStatusText(status) {
+        switch (status) {
+            case 'active': return '进行中';
+            case 'completed': return '已完成';
+            case 'suspended': return '暂停';
+            default: return status;
+        }
+    }
+
+    function getPriorityColor(priority) {
+        switch (priority) {
+            case 'high': return 'danger';
+            case 'medium': return 'warning';
+            case 'low': return 'info';
+            default: return 'secondary';
+        }
+    }
+
+    function getPriorityText(priority) {
+        switch (priority) {
+            case 'high': return '高';
+            case 'medium': return '中';
+            case 'low': return '低';
+            default: return priority;
+        }
+    }
+
+    function formatDate(dateString) {
+        const date = new Date(dateString);
+        return date.toLocaleDateString('zh-CN');
+    }
+</script>
+{% endblock %}

@@ -1,0 +1,494 @@
+{% extends "base.html" %}
+
+{% block title %}设备使用记录{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-play-circle"></i> 设备使用记录</h2>
+                <div>
+                    <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#startUsageModal">
+                        <i class="fas fa-plus"></i> 开始使用设备
+                    </button>
+                    <a href="/equipment" class="btn btn-outline-secondary">
+                        <i class="fas fa-arrow-left"></i> 返回设备管理
+                    </a>
+                </div>
+            </div>
+
+            <!-- 筛选条件 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="equipmentFilter" class="form-label">选择设备</label>
+                            <select class="form-select" id="equipmentFilter">
+                                <option value="">全部设备</option>
+                                <!-- 设备选项将动态加载 -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="statusFilter" class="form-label">使用状态</label>
+                            <select class="form-select" id="statusFilter">
+                                <option value="">全部状态</option>
+                                <option value="in_use">使用中</option>
+                                <option value="completed">已完成</option>
+                                <option value="interrupted">中断</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="userFilter" class="form-label">使用者</label>
+                            <select class="form-select" id="userFilter">
+                                <option value="">全部用户</option>
+                                <!-- 用户选项将动态加载 -->
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label class="form-label">&nbsp;</label>
+                            <div>
+                                <button class="btn btn-primary w-100" onclick="searchUsageRecords()">
+                                    <i class="fas fa-search"></i> 搜索
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 使用记录列表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-hover">
+                            <thead class="table-light">
+                                <tr>
+                                    <th>设备名称</th>
+                                    <th>使用者</th>
+                                    <th>项目</th>
+                                    <th>使用目的</th>
+                                    <th>开始时间</th>
+                                    <th>结束时间</th>
+                                    <th>使用时长</th>
+                                    <th>状态</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="usageTableBody">
+                                <!-- 使用记录将在这里动态加载 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分页 -->
+                    <nav aria-label="使用记录分页">
+                        <ul class="pagination justify-content-center" id="usagePagination">
+                            <!-- 分页按钮将在这里动态生成 -->
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 开始使用设备模态框 -->
+<div class="modal fade" id="startUsageModal" tabindex="-1" aria-labelledby="startUsageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="startUsageModalLabel">开始使用设备</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="startUsageForm">
+                    <div class="mb-3">
+                        <label for="usageEquipment" class="form-label">选择设备 *</label>
+                        <select class="form-select" id="usageEquipment" required>
+                            <option value="">请选择设备</option>
+                            <!-- 可用设备选项将动态加载 -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="usageProject" class="form-label">关联项目</label>
+                        <select class="form-select" id="usageProject">
+                            <option value="">请选择项目（可选）</option>
+                            <!-- 项目选项将动态加载 -->
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="usagePurpose" class="form-label">使用目的 *</label>
+                        <input type="text" class="form-control" id="usagePurpose" required placeholder="请描述使用目的">
+                    </div>
+                    <div class="mb-3">
+                        <label for="conditionBefore" class="form-label">使用前设备状态</label>
+                        <select class="form-select" id="conditionBefore">
+                            <option value="excellent">优秀</option>
+                            <option value="good" selected>良好</option>
+                            <option value="fair">一般</option>
+                            <option value="poor">较差</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="usageNotes" class="form-label">备注</label>
+                        <textarea class="form-control" id="usageNotes" rows="3" placeholder="使用备注（可选）"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="startUsage()">开始使用</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 结束使用设备模态框 -->
+<div class="modal fade" id="endUsageModal" tabindex="-1" aria-labelledby="endUsageModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="endUsageModalLabel">结束使用设备</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <form id="endUsageForm">
+                    <input type="hidden" id="endUsageId">
+                    <div id="endUsageInfo" class="mb-3">
+                        <!-- 使用信息将在这里显示 -->
+                    </div>
+                    <div class="mb-3">
+                        <label for="conditionAfter" class="form-label">使用后设备状态 *</label>
+                        <select class="form-select" id="conditionAfter" required>
+                            <option value="">请选择状态</option>
+                            <option value="excellent">优秀</option>
+                            <option value="good">良好</option>
+                            <option value="fair">一般</option>
+                            <option value="poor">较差</option>
+                        </select>
+                    </div>
+                    <div class="mb-3">
+                        <label for="endUsageNotes" class="form-label">使用总结</label>
+                        <textarea class="form-control" id="endUsageNotes" rows="3" placeholder="请描述使用情况、遇到的问题等"></textarea>
+                    </div>
+                </form>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">取消</button>
+                <button type="button" class="btn btn-primary" onclick="endUsage()">结束使用</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let currentPage = 1;
+let currentFilters = {};
+
+// 页面加载时初始化
+document.addEventListener('DOMContentLoaded', function() {
+    loadUsageRecords();
+    loadEquipmentOptions();
+    loadUserOptions();
+    loadProjectOptions();
+    
+    // 如果URL中有equipment_id参数，预选设备
+    const urlParams = new URLSearchParams(window.location.search);
+    const equipmentId = urlParams.get('equipment_id');
+    if (equipmentId) {
+        setTimeout(() => {
+            document.getElementById('usageEquipment').value = equipmentId;
+            new bootstrap.Modal(document.getElementById('startUsageModal')).show();
+        }, 500);
+    }
+});
+
+// 加载使用记录
+function loadUsageRecords(page = 1) {
+    currentPage = page;
+    
+    const params = new URLSearchParams({
+        page: page,
+        per_page: 10,
+        ...currentFilters
+    });
+    
+    fetch(`/api/equipment/usage?${params}`)
+        .then(response => response.json())
+        .then(data => {
+            displayUsageRecords(data.usage_records);
+            displayPagination(data.total, data.pages, page);
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('加载使用记录失败', 'danger');
+        });
+}
+
+// 显示使用记录
+function displayUsageRecords(records) {
+    const tbody = document.getElementById('usageTableBody');
+    tbody.innerHTML = '';
+    
+    records.forEach(record => {
+        const statusBadge = getUsageStatusBadge(record.status);
+        const duration = calculateDuration(record.start_time, record.end_time);
+        
+        const row = `
+            <tr>
+                <td>
+                    <strong>${record.equipment_name}</strong>
+                </td>
+                <td>${record.user_name}</td>
+                <td>${record.project_name || '-'}</td>
+                <td>${record.purpose}</td>
+                <td>${new Date(record.start_time).toLocaleString()}</td>
+                <td>${record.end_time ? new Date(record.end_time).toLocaleString() : '-'}</td>
+                <td>${duration}</td>
+                <td>${statusBadge}</td>
+                <td>
+                    ${record.status === 'in_use' ? `
+                        <button class="btn btn-sm btn-warning" onclick="showEndUsageModal(${record.id})" title="结束使用">
+                            <i class="fas fa-stop"></i> 结束
+                        </button>
+                    ` : `
+                        <button class="btn btn-sm btn-outline-primary" onclick="viewUsageDetail(${record.id})" title="查看详情">
+                            <i class="fas fa-eye"></i> 详情
+                        </button>
+                    `}
+                </td>
+            </tr>
+        `;
+        tbody.innerHTML += row;
+    });
+}
+
+// 获取使用状态标签
+function getUsageStatusBadge(status) {
+    const statusMap = {
+        'in_use': '<span class="badge bg-warning">使用中</span>',
+        'completed': '<span class="badge bg-success">已完成</span>',
+        'interrupted': '<span class="badge bg-danger">中断</span>'
+    };
+    return statusMap[status] || `<span class="badge bg-secondary">${status}</span>`;
+}
+
+// 计算使用时长
+function calculateDuration(startTime, endTime) {
+    if (!endTime) return '进行中';
+    
+    const start = new Date(startTime);
+    const end = new Date(endTime);
+    const diff = end - start;
+    
+    const hours = Math.floor(diff / (1000 * 60 * 60));
+    const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+    
+    if (hours > 0) {
+        return `${hours}小时${minutes}分钟`;
+    } else {
+        return `${minutes}分钟`;
+    }
+}
+
+// 搜索使用记录
+function searchUsageRecords() {
+    currentFilters = {
+        equipment_id: document.getElementById('equipmentFilter').value,
+        status: document.getElementById('statusFilter').value,
+        user_id: document.getElementById('userFilter').value
+    };
+    loadUsageRecords(1);
+}
+
+// 加载设备选项
+function loadEquipmentOptions() {
+    fetch('/api/equipment')
+        .then(response => response.json())
+        .then(data => {
+            const filterSelect = document.getElementById('equipmentFilter');
+            const usageSelect = document.getElementById('usageEquipment');
+            
+            filterSelect.innerHTML = '<option value="">全部设备</option>';
+            usageSelect.innerHTML = '<option value="">请选择设备</option>';
+            
+            data.equipment.forEach(equipment => {
+                filterSelect.innerHTML += `<option value="${equipment.id}">${equipment.name} (${equipment.serial_number})</option>`;
+                
+                // 只有可用的设备才能开始使用
+                if (equipment.status === 'available') {
+                    usageSelect.innerHTML += `<option value="${equipment.id}">${equipment.name} (${equipment.serial_number})</option>`;
+                }
+            });
+        })
+        .catch(error => console.error('Error loading equipment:', error));
+}
+
+// 加载用户选项
+function loadUserOptions() {
+    fetch('/api/users')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('userFilter');
+            select.innerHTML = '<option value="">全部用户</option>';
+            data.users.forEach(user => {
+                select.innerHTML += `<option value="${user.id}">${user.real_name} (${user.username})</option>`;
+            });
+        })
+        .catch(error => console.error('Error loading users:', error));
+}
+
+// 加载项目选项
+function loadProjectOptions() {
+    fetch('/api/projects')
+        .then(response => response.json())
+        .then(data => {
+            const select = document.getElementById('usageProject');
+            select.innerHTML = '<option value="">请选择项目（可选）</option>';
+            data.projects.forEach(project => {
+                if (project.status === 'active') {
+                    select.innerHTML += `<option value="${project.id}">${project.name}</option>`;
+                }
+            });
+        })
+        .catch(error => console.error('Error loading projects:', error));
+}
+
+// 开始使用设备
+function startUsage() {
+    const form = document.getElementById('startUsageForm');
+    
+    const data = {
+        equipment_id: document.getElementById('usageEquipment').value,
+        project_id: document.getElementById('usageProject').value || null,
+        purpose: document.getElementById('usagePurpose').value,
+        condition_before: document.getElementById('conditionBefore').value,
+        notes: document.getElementById('usageNotes').value
+    };
+    
+    fetch('/api/equipment/usage', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('设备使用记录创建成功', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('startUsageModal')).hide();
+            loadUsageRecords(currentPage);
+            loadEquipmentOptions(); // 重新加载设备选项以更新可用状态
+            form.reset();
+        } else {
+            showAlert(data.error || '操作失败', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('操作失败', 'danger');
+    });
+}
+
+// 显示结束使用模态框
+function showEndUsageModal(usageId) {
+    fetch(`/api/equipment/usage?usage_id=${usageId}`)
+        .then(response => response.json())
+        .then(data => {
+            const record = data.usage_records[0];
+            if (record) {
+                document.getElementById('endUsageId').value = usageId;
+                
+                const usageInfo = `
+                    <div class="card bg-light">
+                        <div class="card-body">
+                            <h6>使用信息</h6>
+                            <p><strong>设备:</strong> ${record.equipment_name}</p>
+                            <p><strong>使用目的:</strong> ${record.purpose}</p>
+                            <p><strong>开始时间:</strong> ${new Date(record.start_time).toLocaleString()}</p>
+                            <p><strong>使用时长:</strong> ${calculateDuration(record.start_time, new Date().toISOString())}</p>
+                        </div>
+                    </div>
+                `;
+                
+                document.getElementById('endUsageInfo').innerHTML = usageInfo;
+                document.getElementById('endUsageNotes').value = record.notes || '';
+                
+                new bootstrap.Modal(document.getElementById('endUsageModal')).show();
+            }
+        })
+        .catch(error => {
+            console.error('Error:', error);
+            showAlert('加载使用记录失败', 'danger');
+        });
+}
+
+// 结束使用设备
+function endUsage() {
+    const usageId = document.getElementById('endUsageId').value;
+    
+    const data = {
+        condition_after: document.getElementById('conditionAfter').value,
+        notes: document.getElementById('endUsageNotes').value
+    };
+    
+    fetch(`/api/equipment/usage/${usageId}/end`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data)
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            showAlert('设备使用已结束', 'success');
+            bootstrap.Modal.getInstance(document.getElementById('endUsageModal')).hide();
+            loadUsageRecords(currentPage);
+            loadEquipmentOptions(); // 重新加载设备选项以更新可用状态
+        } else {
+            showAlert(data.error || '操作失败', 'danger');
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        showAlert('操作失败', 'danger');
+    });
+}
+
+// 显示分页
+function displayPagination(total, totalPages, currentPage) {
+    const pagination = document.getElementById('usagePagination');
+    pagination.innerHTML = '';
+    
+    if (totalPages <= 1) return;
+    
+    // 上一页
+    if (currentPage > 1) {
+        pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadUsageRecords(${currentPage - 1})">上一页</a></li>`;
+    }
+    
+    // 页码
+    for (let i = Math.max(1, currentPage - 2); i <= Math.min(totalPages, currentPage + 2); i++) {
+        const active = i === currentPage ? 'active' : '';
+        pagination.innerHTML += `<li class="page-item ${active}"><a class="page-link" href="#" onclick="loadUsageRecords(${i})">${i}</a></li>`;
+    }
+    
+    // 下一页
+    if (currentPage < totalPages) {
+        pagination.innerHTML += `<li class="page-item"><a class="page-link" href="#" onclick="loadUsageRecords(${currentPage + 1})">下一页</a></li>`;
+    }
+}
+
+// 重置表单
+document.getElementById('startUsageModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('startUsageForm').reset();
+});
+
+document.getElementById('endUsageModal').addEventListener('hidden.bs.modal', function () {
+    document.getElementById('endUsageForm').reset();
+});
+</script>
+{% endblock %}

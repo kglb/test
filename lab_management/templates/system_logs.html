@@ -1,0 +1,468 @@
+{% extends "base.html" %}
+
+{% block title %}系统日志{% endblock %}
+
+{% block content %}
+<div class="container-fluid">
+    <div class="row">
+        <div class="col-12">
+            <div class="d-flex justify-content-between align-items-center mb-4">
+                <h2><i class="fas fa-file-alt"></i> 系统日志</h2>
+                <div>
+                    <button class="btn btn-primary" onclick="exportLogs()">
+                        <i class="fas fa-download"></i> 导出日志
+                    </button>
+                    <button class="btn btn-info" onclick="refreshLogs()">
+                        <i class="fas fa-sync"></i> 刷新
+                    </button>
+                </div>
+            </div>
+
+            <!-- 筛选器 -->
+            <div class="card mb-4">
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3">
+                            <label for="actionFilter" class="form-label">操作类型</label>
+                            <select class="form-select" id="actionFilter" onchange="loadLogs()">
+                                <option value="">全部操作</option>
+                                <option value="CREATE">创建</option>
+                                <option value="UPDATE">更新</option>
+                                <option value="DELETE">删除</option>
+                                <option value="LOGIN">登录</option>
+                                <option value="LOGOUT">登出</option>
+                                <option value="EXPORT">导出</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="resourceFilter" class="form-label">资源类型</label>
+                            <select class="form-select" id="resourceFilter" onchange="loadLogs()">
+                                <option value="">全部资源</option>
+                                <option value="user">用户</option>
+                                <option value="equipment">设备</option>
+                                <option value="inventory">库存</option>
+                                <option value="project">项目</option>
+                                <option value="task">任务</option>
+                                <option value="group">课题组</option>
+                            </select>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="startDate" class="form-label">开始日期</label>
+                            <input type="date" class="form-control" id="startDate" onchange="loadLogs()">
+                        </div>
+                        <div class="col-md-3">
+                            <label for="endDate" class="form-label">结束日期</label>
+                            <input type="date" class="form-control" id="endDate" onchange="loadLogs()">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日志统计 -->
+            <div class="row mb-4">
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-primary text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">今日操作</h6>
+                                    <h3 id="todayLogs">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-calendar-day fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-success text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">成功操作</h6>
+                                    <h3 id="successLogs">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-check-circle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-warning text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">失败操作</h6>
+                                    <h3 id="failedLogs">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-exclamation-triangle fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="col-lg-3 col-md-6 mb-3">
+                    <div class="card bg-info text-white">
+                        <div class="card-body">
+                            <div class="d-flex justify-content-between">
+                                <div>
+                                    <h6 class="card-title">活跃用户</h6>
+                                    <h3 id="activeUsers">0</h3>
+                                </div>
+                                <div class="align-self-center">
+                                    <i class="fas fa-users fa-2x"></i>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日志列表 -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-striped">
+                            <thead>
+                                <tr>
+                                    <th>时间</th>
+                                    <th>用户</th>
+                                    <th>操作</th>
+                                    <th>资源</th>
+                                    <th>描述</th>
+                                    <th>IP地址</th>
+                                    <th>结果</th>
+                                    <th>操作</th>
+                                </tr>
+                            </thead>
+                            <tbody id="logsTableBody">
+                                <!-- 动态加载日志数据 -->
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <!-- 分页 -->
+                    <nav>
+                        <ul class="pagination justify-content-center" id="logsPagination">
+                        </ul>
+                    </nav>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- 日志详情模态框 -->
+<div class="modal fade" id="logDetailModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">日志详情</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="logDetailContent">
+                    <!-- 动态加载日志详情 -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">关闭</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let logs = [];
+let currentPage = 1;
+let totalPages = 1;
+
+$(document).ready(function() {
+    // 设置默认日期为今天
+    const today = new Date().toISOString().split('T')[0];
+    $('#endDate').val(today);
+    
+    loadLogs();
+    updateStatistics();
+});
+
+function loadLogs() {
+    const actionFilter = $('#actionFilter').val();
+    const resourceFilter = $('#resourceFilter').val();
+    const startDate = $('#startDate').val();
+    const endDate = $('#endDate').val();
+    
+    const params = new URLSearchParams();
+    params.append('page', currentPage);
+    params.append('per_page', 50);
+    
+    if (actionFilter) params.append('action', actionFilter);
+    if (resourceFilter) params.append('resource', resourceFilter);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    
+    $.get(`/api/system_logs?${params.toString()}`, function(data) {
+        logs = data.logs;
+        totalPages = data.pages;
+        renderLogsTable();
+        renderPagination('logsPagination', data.current_page, data.pages, loadLogs);
+        updateStatistics();
+    }).fail(function() {
+        showAlert('加载日志失败', 'danger');
+    });
+}
+
+function renderLogsTable() {
+    const tbody = $('#logsTableBody');
+    tbody.empty();
+    
+    if (logs.length === 0) {
+        tbody.append(`
+            <tr>
+                <td colspan="8" class="text-center text-muted">
+                    <i class="fas fa-inbox fa-3x mb-3"></i>
+                    <p>暂无日志数据</p>
+                </td>
+            </tr>
+        `);
+        return;
+    }
+    
+    logs.forEach(log => {
+        const actionBadge = getActionBadge(log.action);
+        const resultBadge = getResultBadge(log.result);
+        const resourceBadge = getResourceBadge(log.resource);
+        
+        const row = `
+            <tr>
+                <td>
+                    <div>${formatDateTime(log.created_at)}</div>
+                </td>
+                <td>
+                    <div class="fw-bold">${log.user_name || 'System'}</div>
+                </td>
+                <td>${actionBadge}</td>
+                <td>${resourceBadge}</td>
+                <td>
+                    <div class="text-truncate" style="max-width: 200px;" title="${log.description}">
+                        ${log.description}
+                    </div>
+                </td>
+                <td>
+                    <code>${log.ip_address || '-'}</code>
+                </td>
+                <td>${resultBadge}</td>
+                <td>
+                    <button class="btn btn-sm btn-outline-info" onclick="viewLogDetail(${log.id})" title="查看详情">
+                        <i class="fas fa-eye"></i>
+                    </button>
+                </td>
+            </tr>
+        `;
+        tbody.append(row);
+    });
+}
+
+function getActionBadge(action) {
+    const badges = {
+        'CREATE': '<span class="badge bg-success">创建</span>',
+        'UPDATE': '<span class="badge bg-primary">更新</span>',
+        'DELETE': '<span class="badge bg-danger">删除</span>',
+        'LOGIN': '<span class="badge bg-info">登录</span>',
+        'LOGOUT': '<span class="badge bg-secondary">登出</span>',
+        'EXPORT': '<span class="badge bg-warning">导出</span>'
+    };
+    return badges[action] || `<span class="badge bg-light text-dark">${action}</span>`;
+}
+
+function getResultBadge(result) {
+    const badges = {
+        'success': '<span class="badge bg-success">成功</span>',
+        'failed': '<span class="badge bg-danger">失败</span>',
+        'error': '<span class="badge bg-warning">错误</span>'
+    };
+    return badges[result] || '<span class="badge bg-secondary">未知</span>';
+}
+
+function getResourceBadge(resource) {
+    const badges = {
+        'user': '<span class="badge bg-primary">用户</span>',
+        'equipment': '<span class="badge bg-info">设备</span>',
+        'inventory': '<span class="badge bg-success">库存</span>',
+        'project': '<span class="badge bg-warning">项目</span>',
+        'task': '<span class="badge bg-secondary">任务</span>',
+        'group': '<span class="badge bg-dark">课题组</span>'
+    };
+    return badges[resource] || `<span class="badge bg-light text-dark">${resource}</span>`;
+}
+
+function formatDateTime(dateTimeString) {
+    if (!dateTimeString) return '-';
+    const date = new Date(dateTimeString);
+    return date.toLocaleString('zh-CN');
+}
+
+function updateStatistics() {
+    const today = new Date().toISOString().split('T')[0];
+    const todayLogs = logs.filter(log => log.created_at && log.created_at.startsWith(today));
+    const successLogs = logs.filter(log => log.result === 'success');
+    const failedLogs = logs.filter(log => log.result === 'failed' || log.result === 'error');
+    const uniqueUsers = new Set(logs.map(log => log.user_id).filter(id => id));
+    
+    $('#todayLogs').text(todayLogs.length);
+    $('#successLogs').text(successLogs.length);
+    $('#failedLogs').text(failedLogs.length);
+    $('#activeUsers').text(uniqueUsers.size);
+}
+
+function viewLogDetail(logId) {
+    const log = logs.find(l => l.id === logId);
+    if (!log) return;
+    
+    const detailContent = `
+        <div class="row">
+            <div class="col-md-6">
+                <h6>基本信息</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>ID:</strong></td><td>${log.id}</td></tr>
+                    <tr><td><strong>时间:</strong></td><td>${formatDateTime(log.created_at)}</td></tr>
+                    <tr><td><strong>用户:</strong></td><td>${log.user_name || 'System'}</td></tr>
+                    <tr><td><strong>操作:</strong></td><td>${getActionBadge(log.action)}</td></tr>
+                    <tr><td><strong>资源:</strong></td><td>${getResourceBadge(log.resource)}</td></tr>
+                    <tr><td><strong>资源ID:</strong></td><td>${log.resource_id || '-'}</td></tr>
+                    <tr><td><strong>结果:</strong></td><td>${getResultBadge(log.result)}</td></tr>
+                </table>
+            </div>
+            <div class="col-md-6">
+                <h6>技术信息</h6>
+                <table class="table table-sm">
+                    <tr><td><strong>IP地址:</strong></td><td><code>${log.ip_address || '-'}</code></td></tr>
+                    <tr><td><strong>用户代理:</strong></td><td style="word-break: break-all;"><small>${log.user_agent || '-'}</small></td></tr>
+                </table>
+            </div>
+        </div>
+        <div class="row">
+            <div class="col-12">
+                <h6>详细描述</h6>
+                <div class="alert alert-light">
+                    ${log.description}
+                </div>
+            </div>
+        </div>
+    `;
+    
+    $('#logDetailContent').html(detailContent);
+    $('#logDetailModal').modal('show');
+}
+
+function refreshLogs() {
+    currentPage = 1;
+    loadLogs();
+    showAlert('日志已刷新', 'success');
+}
+
+function exportLogs() {
+    const actionFilter = $('#actionFilter').val();
+    const resourceFilter = $('#resourceFilter').val();
+    const startDate = $('#startDate').val();
+    const endDate = $('#endDate').val();
+    
+    const params = new URLSearchParams();
+    if (actionFilter) params.append('action', actionFilter);
+    if (resourceFilter) params.append('resource', resourceFilter);
+    if (startDate) params.append('start_date', startDate);
+    if (endDate) params.append('end_date', endDate);
+    params.append('export', 'csv');
+    
+    // 创建下载链接
+    const link = document.createElement('a');
+    link.href = `/api/system_logs?${params.toString()}`;
+    link.download = `system_logs_${new Date().getTime()}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    
+    showAlert('日志导出中...', 'info');
+}
+
+function renderPagination(containerId, currentPage, totalPages, callback) {
+    const container = $(`#${containerId}`);
+    container.empty();
+    
+    if (totalPages <= 1) return;
+    
+    // 上一页
+    container.append(`
+        <li class="page-item ${currentPage === 1 ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage - 1}, '${callback.name}')">上一页</a>
+        </li>
+    `);
+    
+    // 页码
+    for (let i = 1; i <= totalPages; i++) {
+        if (i === currentPage || i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
+            container.append(`
+                <li class="page-item ${i === currentPage ? 'active' : ''}">
+                    <a class="page-link" href="#" onclick="changePage(${i}, '${callback.name}')">${i}</a>
+                </li>
+            `);
+        } else if (i === currentPage - 3 || i === currentPage + 3) {
+            container.append('<li class="page-item disabled"><span class="page-link">...</span></li>');
+        }
+    }
+    
+    // 下一页
+    container.append(`
+        <li class="page-item ${currentPage === totalPages ? 'disabled' : ''}">
+            <a class="page-link" href="#" onclick="changePage(${currentPage + 1}, '${callback.name}')">下一页</a>
+        </li>
+    `);
+}
+
+function changePage(page, callbackName) {
+    if (page < 1 || page > totalPages) return;
+    currentPage = page;
+    if (callbackName === 'loadLogs') {
+        loadLogs();
+    }
+}
+
+function showAlert(message, type) {
+    const alertDiv = `
+        <div class="alert alert-${type} alert-dismissible fade show" role="alert">
+            ${message}
+            <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+        </div>
+    `;
+    $('.container-fluid').prepend(alertDiv);
+    setTimeout(() => $('.alert').fadeOut(), 3000);
+}
+</script>
+
+<style>
+.table th {
+    border-top: none;
+    font-weight: 600;
+    color: #495057;
+}
+
+.text-truncate {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.badge {
+    font-size: 0.75em;
+}
+
+.card {
+    box-shadow: 0 0.125rem 0.25rem rgba(0, 0, 0, 0.075);
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+</style>
+{% endblock %}
